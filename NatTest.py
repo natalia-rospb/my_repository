@@ -1,7 +1,9 @@
 import unittest
 import tokenizer_natashka_final
 
+
 class TokenizerTest(unittest.TestCase):
+    
     def setUp(self):
         self.t = tokenizer_natashka_final.Tokenizator()
     
@@ -76,6 +78,7 @@ class GetTypeTest(unittest.TestCase):
         typeinquestion = self.t._getType("\n")
         self.assertEqual(typeinquestion, "o")
 
+        
 class GenerateWithTypesTest(unittest.TestCase):
     
     def setUp(self):
