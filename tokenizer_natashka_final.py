@@ -3,6 +3,7 @@ This module can be used for tokenization of string.
 """
 from unicodedata import category
 
+
 class Token (object):
     
     """
@@ -19,6 +20,7 @@ class Token (object):
         self.position = position
         self.word = word
         
+        
 class TypeToken (Token):
     """It is a Token with defined Type. Type can be alphabetic (a), digit (d),
     space (s), punctuation (p), other (o)
@@ -27,6 +29,7 @@ class TypeToken (Token):
         self.position = position
         self.word = word
         self.typ = typ
+        
         
 class Tokenizator (object):
     """Class which has a fuction for dividing our text on tokens"""
