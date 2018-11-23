@@ -19,7 +19,7 @@ class Token (object):
         """
         self.position = position
         self.word = word
-        
+
         
 class TypeToken (Token):
     """It is a Token with defined Type. Type can be alphabetic (a), digit (d),
@@ -29,7 +29,7 @@ class TypeToken (Token):
         self.position = position
         self.word = word
         self.typ = typ
-        
+
         
 class Tokenizator (object):
     """Class which has a fuction for dividing our text on tokens"""
@@ -44,6 +44,8 @@ class Tokenizator (object):
         @param a: position of the first symbol of a token
         @return: list of tokens
         """
+        if string == "":
+            return "Empty string"
         # array for the final tokens
         a = 0
         for i, c, in enumerate (string):
@@ -102,11 +104,11 @@ class Tokenizator (object):
         """
         if string == "":
             return "Empty string"
-        LastTokenType = ""
+        lastTokenType = ""
         a = 0
-        LastTokenType = self._getType(string[0])
+        lastTokenType = self._getType(string[0])
         for i, c, in enumerate (string):
-            CurrentTokenType = self._getType(c)
+            currentTokenType = self._getType(c)
             """
             We extract token in this method only when the type of the
             previous character before the beginning of the token and
@@ -115,12 +117,12 @@ class Tokenizator (object):
             Therefore, space, digits (like 1 or 939872), punctuation
             and so on are tokens as well.
             """
-            if CurrentTokenType != LastTokenType and i>0:
-                yield TypeToken(a, string[a:i], LastTokenType)
+            if currentTokenType != lastTokenType and i>0:
+                yield TypeToken(a, string[a:i], lastTokenType)
                 a = i
-                LastTokenType = CurrentTokenType
+                lastTokenType = currentTokenType
         #This string is necessary for processing of the last token
-        yield TypeToken(a, string[a:i+1], CurrentTokenType)
+        yield TypeToken(a, string[a:i+1], currentTokenType)
                 
     def tokenize_with_types(self, string):
         """
@@ -136,7 +138,8 @@ text2 = "12This program can cause tears"
 # creating an instance of class Tokenizator
 t = Tokenizator()
 #tokenslist = list(t.tokenize_with_types(text2))
-tokenscollection = list(t.generate_with_types(text2))
+#tokenscollection = list(t.generate_with_types(text2))
+tokenscollection = list(t.generate(""))
 
 for token in tokenscollection:
     print(token.word, token.position, token.typ)
