@@ -1,18 +1,16 @@
 import unittest
 import tokenizer_natashka_final
 
-
 class TokenizerTest(unittest.TestCase):
-    
     def setUp(self):
         self.t = tokenizer_natashka_final.Tokenizator()
     
     def test_tokens_collection_is_list(self):
-        self.assertTrue(isinstance(self.t.tokenize('Мама мыла раму'),list))
+        self.assertIsInstance(self.t.tokenize('Мама мыла раму'),list)
 
     def test_token_type_in_list(self):
         tokenscollection = self.t.tokenize('Мама мыла раму')
-        self.assertTrue(isinstance(tokenscollection[0],tokenizer_natashka_final.Token))
+        self.assertIsInstance(tokenscollection[0],tokenizer_natashka_final.Token)
 
     def test_input_type_int(self):
         s = 1414
@@ -24,7 +22,15 @@ class TokenizerTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             tokenscollection2 = self.t.tokenize(v)
 
-    def test_tokenizer_punctuation_in_the_end (self):
+    def test_tokenizer_token_position(self):
+        tokenscollection = list(self.t.tokenize('This is my sentence.'))
+        self.assertEqual(len(tokenscollection),4)
+        self.assertEqual(tokenscollection[0].position, 0)
+        self.assertEqual(tokenscollection[1].position, 5)
+        self.assertEqual(tokenscollection[2].position, 8)
+        self.assertEqual(tokenscollection[3].position, 11)
+
+    def test_tokenizer_punctuation_in_the_end(self):
         tokenscollection = list(self.t.tokenize('This is my sentence.'))
         self.assertEqual(len(tokenscollection),4)
         self.assertEqual(tokenscollection[0].word, 'This')
@@ -32,7 +38,7 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(tokenscollection[2].word, 'my')
         self.assertEqual(tokenscollection[3].word, 'sentence')
         
-    def test_tokenizer_punctuation_in_the_beginning (self):
+    def test_tokenizer_punctuation_in_the_beginning(self):
         tokenscollection = list(self.t.tokenize('.This is my sentence'))
         self.assertEqual(len(tokenscollection),4)
         self.assertEqual(tokenscollection[0].word, 'This')
@@ -40,29 +46,25 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(tokenscollection[2].word, 'my')
         self.assertEqual(tokenscollection[3].word, 'sentence')
 
-    def test_tokenizer_russian_punctuation_in_the_end (self):
+    def test_tokenizer_russian_punctuation_in_the_end(self):
         tokenscollection = list(self.t.tokenize('Это мое предложение.'))
         self.assertEqual(len(tokenscollection),3)
         self.assertEqual(tokenscollection[0].word, 'Это')
         self.assertEqual(tokenscollection[1].word, 'мое')
         self.assertEqual(tokenscollection[2].word, 'предложение')
         
-    def test_tokenizer_sentence_of_spaces (self):
+    def test_tokenizer_sentence_of_spaces(self):
         tokenscollection = list(self.t.tokenize('   '))
         self.assertEqual(len(tokenscollection),0)       
         self.assertEqual(tokenscollection, [])
-        
-    def test_generator_empty_sentence (self):
-        with self.assertRaises(IndexError):
-            tokenscollection = self.t.tokenize('')
 
 
-class GetTypeTest(unittest.TestCase):
+class _GetTypeTest(unittest.TestCase):
     
     def setUp(self):
         self.t = tokenizer_natashka_final.Tokenizator()
         
-    def test_token_type (self):
+    def test_token_type(self):
         typeinquestion = self.t._getType("1")
         self.assertEqual(typeinquestion, "d")
         typeinquestion = self.t._getType("v")
@@ -78,16 +80,68 @@ class GetTypeTest(unittest.TestCase):
         typeinquestion = self.t._getType("\n")
         self.assertEqual(typeinquestion, "o")
 
+
+class GeneratorTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.t = tokenizer_natashka_final.Tokenizator()
         
+    def test_tokenscollection_is_list(self):
+        self.assertIsInstance(list(self.t.generate('Мама мыла раму')),list)
+
+    def test_generator_english(self):
+        tokenscollection = list(self.t.generate('Everything is good!!*4+'))
+        self.assertEqual(len(tokenscollection),3)
+        self.assertEqual(tokenscollection[0].word, 'Everything')
+        self.assertEqual(tokenscollection[0].position, 0)
+        self.assertEqual(tokenscollection[1].word, 'is')
+        self.assertEqual(tokenscollection[1].position, 11)
+        self.assertEqual(tokenscollection[2].word, 'good')
+
+    def test_generator_russian(self):
+        tokenscollection = list(self.t.generate('  Всё хорошо! 537))*!'))
+        self.assertEqual(len(tokenscollection),2)
+        self.assertEqual(tokenscollection[0].word, 'Всё')
+        self.assertEqual(tokenscollection[0].position, 2)
+        self.assertEqual(tokenscollection[1].word, 'хорошо')
+        self.assertEqual(tokenscollection[1].position, 6)
+
+    def test_generator_punctuation_in_the_beginning(self):
+        tokenscollection = list(self.t.generate('.This is my sentence'))
+        self.assertEqual(len(tokenscollection),4)
+        self.assertEqual(tokenscollection[0].word, 'This')
+        self.assertEqual(tokenscollection[1].word, 'is')
+        self.assertEqual(tokenscollection[2].word, 'my')
+        self.assertEqual(tokenscollection[3].word, 'sentence')
+
+    def test_generator_punctuation_in_the_end(self):
+        tokenscollection = list(self.t.generate('This is my sentence.'))
+        self.assertEqual(len(tokenscollection),4)
+        self.assertEqual(tokenscollection[0].word, 'This')
+        self.assertEqual(tokenscollection[1].word, 'is')
+        self.assertEqual(tokenscollection[2].word, 'my')
+        self.assertEqual(tokenscollection[3].word, 'sentence')
+        
+    def test_generator_sentence_of_spaces(self):
+        tokenscollection = list(self.t.generate('   '))
+        self.assertEqual(len(tokenscollection),0)        
+        self.assertEqual(tokenscollection, [])
+        
+    def test_generator_empty_sentence(self):
+        tokenscollection = list(self.t.generate(''))
+        self.assertEqual(len(tokenscollection),0)
+        self.assertEqual(tokenscollection, [])
+
+
 class GenerateWithTypesTest(unittest.TestCase):
     
     def setUp(self):
         self.t = tokenizer_natashka_final.Tokenizator()
 
     def test_tokenscollection_is_list(self):
-        self.assertTrue(isinstance(list(self.t.generate_with_types('Мама мыла раму')),list))
+        self.assertIsInstance(list(self.t.generate_with_types('Мама мыла раму')),list)
         
-    def test_generator_english (self):
+    def test_generator_english(self):
         tokenscollection = list(self.t.generate_with_types('Everything is good!!*4+'))
         self.assertEqual(tokenscollection[0].word, 'Everything')
         self.assertEqual(tokenscollection[0].position, 0)
@@ -108,7 +162,7 @@ class GenerateWithTypesTest(unittest.TestCase):
         self.assertEqual(tokenscollection[7].position, 22)
         self.assertEqual(tokenscollection[7].typ, 'o')
         
-    def test_generator_russian (self):
+    def test_generator_russian(self):
         tokenscollection = list(self.t.generate_with_types('  Всё хорошо! 537))*!'))
         self.assertEqual(tokenscollection[0].word, '  ')
         self.assertEqual(tokenscollection[0].position, 0)
@@ -129,7 +183,7 @@ class GenerateWithTypesTest(unittest.TestCase):
         self.assertEqual(tokenscollection[7].position, 17)
         self.assertEqual(tokenscollection[7].typ, 'p')
 
-    def test_generator_punctuation_in_the_beginning (self):
+    def test_generator_punctuation_in_the_beginning(self):
         tokenscollection = list(self.t.generate_with_types('.This is my sentence'))
         self.assertEqual(len(tokenscollection),8)
         self.assertEqual(tokenscollection[0].word, '.')
@@ -141,7 +195,7 @@ class GenerateWithTypesTest(unittest.TestCase):
         self.assertEqual(tokenscollection[6].word, ' ')
         self.assertEqual(tokenscollection[7].word, 'sentence')
 
-    def test_generator_punctuation_in_the_end (self):
+    def test_generator_punctuation_in_the_end(self):
         tokenscollection = list(self.t.generate_with_types('This is my sentence.'))
         self.assertEqual(len(tokenscollection),8)
         self.assertEqual(tokenscollection[0].word, 'This')
@@ -153,14 +207,14 @@ class GenerateWithTypesTest(unittest.TestCase):
         self.assertEqual(tokenscollection[6].word, 'sentence')
         self.assertEqual(tokenscollection[7].word, '.')
         
-    def test_generator_sentence_of_spaces (self):
+    def test_generator_sentence_of_spaces(self):
         tokenscollection = list(self.t.generate_with_types('   '))
         self.assertEqual(len(tokenscollection),1)
         self.assertEqual(tokenscollection[0].word, '   ')
         self.assertEqual(tokenscollection[0].position, 0)
         self.assertEqual(tokenscollection[0].typ, 's')        
 
-    def test_generator_empty_sentence (self):
+    def test_generator_empty_sentence(self):
         tokenscollection = list(self.t.generate_with_types(''))
         self.assertEqual(len(tokenscollection),0)
         self.assertEqual(tokenscollection, [])
