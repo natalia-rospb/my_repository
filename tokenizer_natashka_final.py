@@ -3,7 +3,6 @@ This module can be used for tokenization of string.
 """
 from unicodedata import category
 
-
 class Token (object):
     
     """
@@ -20,7 +19,6 @@ class Token (object):
         self.position = position
         self.word = word
         
-        
 class TypeToken (Token):
     """It is a Token with defined Type. Type can be alphabetic (a), digit (d),
     space (s), punctuation (p), other (o)
@@ -29,7 +27,6 @@ class TypeToken (Token):
         self.position = position
         self.word = word
         self.typ = typ
-        
         
 class Tokenizator (object):
     """Class which has a fuction for dividing our text on tokens"""
@@ -94,6 +91,12 @@ class Tokenizator (object):
         else: return "o" #other
         
     def generate_with_types (self, string):
+        """
+        This method is pretty similar to the method 'generate' (above),
+        but it records also the type to each token.
+        @param string: text to be divided into tokens
+        @yield: TypeTokens with params: position, word and typ
+        """
         if string == "":
             return "Empty string"
         LastTokenType = ""
@@ -117,14 +120,20 @@ class Tokenizator (object):
         yield TypeToken(a, string[a:i+1], CurrentTokenType)
                 
     def tokenize_with_types(self, string):
+        """
+        This method uses generator with types and records
+        all TypeTokens into one list.
+        @param string: string to be processed by generate_with_types method
+        @return: list of TypeTokens
+        """
         return list(self.generate_with_types(string))
         
 text = "  // 194  This  14 program 225 can 655 cause 320//, tears  "
-text2 = "This program can cause tears"
+text2 = "12This program can cause tears"
 # creating an instance of class Tokenizator
 t = Tokenizator()
 #tokenslist = list(t.tokenize_with_types(text2))
-tokenscollection = list(t.generate_with_types(text))
+tokenscollection = list(t.generate_with_types(text2))
 
 for token in tokenscollection:
     print(token.word, token.position, token.typ)
