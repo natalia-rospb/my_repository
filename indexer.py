@@ -31,7 +31,7 @@ class Position(object):
         This method represents an example of class Position in an appropriate
         way. Example of how does it look like: (8; 12)
         """
-        return ('(' + self.wordbeg + ';' + ' ' + self.wordend + ')')
+        return ('(' + str(self.wordbeg) + ';' + ' ' + str(self.wordend) + ')')
     
 
 class Position_with_lines(object):
@@ -67,8 +67,8 @@ class Position_with_lines(object):
         This method represents an example of class Position in an appropriate
         way. Example of how does it look like: (8; 12)
         """
-        return ('(' + self.wordbeg + ';' + ' ' + self.wordend +
-                ' line:' + self.line + ')')
+        return ('(' + str(self.wordbeg) + ';' + ' ' + str(self.wordend) +
+                ' line:' + str(self.line) + ')')
     
     
 class Indexer(object):
@@ -86,9 +86,12 @@ class Indexer(object):
             if ((token.typ=="a") or (token.typ=="d")):
                 self.database.setdefault(token.word,{}).setdefault(
                     filename,[]).append(Position(token.position,
-                                                 token.position+len(token))
+                        token.position+len(token.word)))
+        file.close()
+        self.database.sync()
     
     def index_with_lines(self, filename):
+        t = Tokenizator()                                        
         try:
             file = open(filename)       
         except IOError:
@@ -98,10 +101,12 @@ class Indexer(object):
                 if ((token.typ=="a") or (token.typ=="d")):
                     self.database.setdefault(token.word,{}).setdefault(
                         filename,[]).append(Position_with_lines(
-                            token.position, token.position+len(token),line)
+                            token.position, token.position+len(token.word),line))
+        file.close()
+        self.database.sync()
 
-    def closeDatabase(self):
-        self.database = shelve.sync()
+    #def closeDatabase(self):
+    #    self.database.close()
         
 def main():
     indexer = Indexer('database')
@@ -109,13 +114,13 @@ def main():
     file.write('this is a sentence to be be indexed')
     file.close()
     indexer.index('text.txt')
-    indexer.closeDatabase()
+    #indexer.closeDatabase()
     os.remove('text.txt')
     file2 = open('text2.txt', 'w')
     file2.write('this is a sentence \r\nto be be indexed')
     file2.close()
     indexer.index('text2.txt')
-    indexer.closeDatabase()
+    #indexer.closeDatabase()
     os.remove('text2.txt')
     print(dict(indexer.database))
     

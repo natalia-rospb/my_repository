@@ -37,19 +37,19 @@ class IndexerTest(unittest.TestCase):
         self.database = shelve.open("Плутон.txt", writeback=True)
 
     def test_error_input_int(self):
-        with self.assertRaises(TypeError)
+        with self.assertRaises(TypeError):
            self.indexer.index(14198)
            
     def test_error_input_bool(self):
-        with self.assertRaises(TypeError)
+        with self.assertRaises(TypeError):
            self.indexer.index(True)
            
     def test_error_empty_input(self):
-        with self.assertRaises(TypeError)
+        with self.assertRaises(TypeError):
            self.indexer.index()    
 
-    def test_error_wrong_path
-        with self.asserRaises(FileNotFoundError)
+    def test_error_wrong_path(self):
+        with self.asserRaises(FileNotFoundError):
             self.indexer.index("Текст.txt")
             
     def test_input_empty_text(self):
@@ -70,6 +70,6 @@ class IndexerTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("sun sun")
         self.assertEqual(self.indexer.index("text.txt"),
-                         dict(self.database)=={"sun": {"text.txt": [Position(0,2); Position(4,6)]}})
+                         dict(self.database)=={"sun": {"text.txt": [Position(0,2), Position(4,6)]}})
         os.remove("text.txt")
         
