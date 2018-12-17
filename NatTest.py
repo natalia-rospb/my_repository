@@ -2,6 +2,7 @@ import unittest
 import tokenizer_natashka_final
 
 class TokenizerTest(unittest.TestCase):
+    
     def setUp(self):
         self.t = tokenizer_natashka_final.Tokenizator()
     

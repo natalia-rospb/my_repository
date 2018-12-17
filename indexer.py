@@ -67,7 +67,7 @@ class Position_with_lines(object):
         This method represents an example of class Position in an appropriate
         way. Example of how does it look like: (8; 12)
         """
-        return ('(' + str(self.wordbeg) + ';' + ' ' + str(self.wordend) +
+        return ('(' + str(self.wordbeg) + ',' + ' ' + str(self.wordend) + ';' + 
                 ' line:' + str(self.line) + ')')
     
     
@@ -96,7 +96,7 @@ class Indexer(object):
             file = open(filename)       
         except IOError:
             raise FileNotFoundError("File is not found")
-        for line, string in enumerate(file.read()):
+        for line, string in enumerate(file):
             for token in t.generate_with_types(string):
                 if ((token.typ=="a") or (token.typ=="d")):
                     self.database.setdefault(token.word,{}).setdefault(
@@ -105,24 +105,27 @@ class Indexer(object):
         file.close()
         self.database.sync()
 
-    #def closeDatabase(self):
-    #    self.database.close()
+    def closeDatabase(self):
+        self.database.close()
         
 def main():
     indexer = Indexer('database')
-    file = open('text.txt', 'w')
-    file.write('this is a sentence to be be indexed')
-    file.close()
-    indexer.index('text.txt')
-    #indexer.closeDatabase()
-    os.remove('text.txt')
-    file2 = open('text2.txt', 'w')
-    file2.write('this is a sentence \r\nto be be indexed')
-    file2.close()
-    indexer.index('text2.txt')
-    #indexer.closeDatabase()
-    os.remove('text2.txt')
+    #file = open('text.txt', 'w')
+    #file.write('this is a sentence')
+    #file.close()
+    #indexer.index('text.txt')
+    #os.remove('text.txt')
+    #file2 = open('text2.txt', 'w')
+    #file2.write('this is a sentence \r\nto be be indexed')
+    #file2.close()
+    #indexer.index_with_lines('text2.txt')
+    #os.remove('text2.txt')
+    indexer.index_with_lines('tolstoy1.txt')
+    indexer.index_with_lines('tolstoy2.txt')
+    indexer.index_with_lines('tolstoy3.txt')
+    indexer.index_with_lines('tolstoy4.txt')
     print(dict(indexer.database))
+    indexer.closeDatabase()
     
 if __name__=='__main__':
     main()

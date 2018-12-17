@@ -5,7 +5,6 @@ from unicodedata import category
 
 
 class Token (object):
-    
     """
     Class of tokens. Instances of the class have attributes
     'position' and 'word'.
@@ -138,8 +137,8 @@ text2 = "12This program can cause tears"
 # creating an instance of class Tokenizator
 t = Tokenizator()
 #tokenslist = list(t.tokenize_with_types(text2))
-#tokenscollection = list(t.generate_with_types(text2))
-tokenscollection = list(t.generate(""))
+tokenscollection = list(t.generate_with_types(text2))
+#tokenscollection = list(t.generate(""))
 
 for token in tokenscollection:
     print(token.word, token.position, token.typ)
