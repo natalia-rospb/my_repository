@@ -64,38 +64,66 @@ class Position_with_lines(object):
 
     def __repr__(self):
         """
-        This method represents an example of class Position in an appropriate
-        way. Example of how does it look like: (8; 12)
+        This method represents an example of class Position in a following
+        way: (8, 12; line:7)
         """
         return ('(' + str(self.wordbeg) + ',' + ' ' + str(self.wordend) + ';' + 
                 ' line:' + str(self.line) + ')')
     
     
 class Indexer(object):
+    """
+    Class which contains 2 methods for indexing text(creating a database
+    with positions of all tokens in the text): the one that regards
+    lines and the one that does not. 
+    """
 
-    def __init__(self, database):
-        self.database = shelve.open(database, writeback=True)
+    def __init__(self, databasename):
+        """
+        Creates an example of class Indexer
+        @param database: name of the database where data after indexing will
+        be stored.
+        """
+        self.database = shelve.open(databasename, writeback=True)
 
     def index (self, filename):
+        """
+        This method indexes text and adds all alphabetical and digital
+        tokens that it meet into a database with the text positions of
+        their beginning and end. 
+        @param filename: name of the text file to be indexed
+        """
         t = Tokenizator()
+        #checking the existance of the file during its opening
         try:
             file = open(filename)       
         except IOError:
             raise FileNotFoundError("File is not found")
+        #cycle on the text as for on one string
         for token in t.generate_with_types(file.read()):
             if ((token.typ=="a") or (token.typ=="d")):
                 self.database.setdefault(token.word,{}).setdefault(
                     filename,[]).append(Position(token.position,
                         token.position+len(token.word)))
         file.close()
+        #save and close database
         self.database.sync()
     
     def index_with_lines(self, filename):
-        t = Tokenizator()                                        
+        """
+        This method indexes text and adds all alphabetical and digital
+        tokens that it meet into a database with the text positions of
+        their beginning and end, and a number of the line in which
+        the token occurs. 
+        @param filename: name of the text file to be indexed
+        """
+        t = Tokenizator()
+        #checking the existance of the file during its opening
         try:
             file = open(filename)       
         except IOError:
             raise FileNotFoundError("File is not found")
+        #cycle on each string of the text one after one
         for line, string in enumerate(file):
             for token in t.generate_with_types(string):
                 if ((token.typ=="a") or (token.typ=="d")):
@@ -103,9 +131,13 @@ class Indexer(object):
                         filename,[]).append(Position_with_lines(
                             token.position, token.position+len(token.word),line))
         file.close()
+        #save and close database
         self.database.sync()
 
     def closeDatabase(self):
+        """
+        This method allows to close database.
+        """
         self.database.close()
         
 def main():
@@ -120,12 +152,15 @@ def main():
     #file2.close()
     #indexer.index_with_lines('text2.txt')
     #os.remove('text2.txt')
-    indexer.index_with_lines('tolstoy1.txt')
-    indexer.index_with_lines('tolstoy2.txt')
-    indexer.index_with_lines('tolstoy3.txt')
-    indexer.index_with_lines('tolstoy4.txt')
-    print(dict(indexer.database))
+
+    #indexer2.index_with_lines('tolstoy1.txt')
+    #indexer2.index_with_lines('tolstoy2.txt')
+    #indexer2.index_with_lines('tolstoy3.txt')
+    #indexer2.index_with_lines('tolstoy4.txt')
     indexer.closeDatabase()
+    print(dict(shelve.open('database')))
+    #print(dict(indexer.database))
+    #indexer.closeDatabase()
     
 if __name__=='__main__':
     main()
