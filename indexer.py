@@ -99,12 +99,12 @@ class Indexer(object):
             file = open(filename)       
         except IOError:
             raise FileNotFoundError("File is not found")
-        #cycle on the text as for on one string
+        #cycle on the text as on one string
         for token in t.generate_with_types(file.read()):
             if ((token.typ=="a") or (token.typ=="d")):
                 self.database.setdefault(token.word,{}).setdefault(
                     filename,[]).append(Position(token.position,
-                        token.position+len(token.word)))
+                        (token.position+len(token.word)-1)))
         file.close()
         #save and close database
         self.database.sync()
@@ -129,7 +129,7 @@ class Indexer(object):
                 if ((token.typ=="a") or (token.typ=="d")):
                     self.database.setdefault(token.word,{}).setdefault(
                         filename,[]).append(Position_with_lines(
-                            token.position, token.position+len(token.word),line))
+                            token.position, (token.position+len(token.word)-1),line+1))
         file.close()
         #save and close database
         self.database.sync()
@@ -141,9 +141,9 @@ class Indexer(object):
         self.database.close()
         
 def main():
-    indexer = Indexer('database')
+    #indexer = Indexer('database')
     #file = open('text.txt', 'w')
-    #file.write('this is a sentence')
+    #file.write('это мое предложение')
     #file.close()
     #indexer.index('text.txt')
     #os.remove('text.txt')
@@ -157,8 +157,9 @@ def main():
     #indexer2.index_with_lines('tolstoy2.txt')
     #indexer2.index_with_lines('tolstoy3.txt')
     #indexer2.index_with_lines('tolstoy4.txt')
-    indexer.closeDatabase()
-    print(dict(shelve.open('database')))
+    #indexer.closeDatabase()
+    for token in dict(shelve.open('database')).items():
+        print(token)
     #print(dict(indexer.database))
     #indexer.closeDatabase()
     

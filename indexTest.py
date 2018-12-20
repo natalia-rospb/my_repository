@@ -1,75 +1,181 @@
 import unittest
 import indexer
 import shelve
+import os
 
 
 class PositionTest(unittest.TestCase):
 
-    def setUp(self):
-        self.t = indexer.Position()
+    def test_equal(self):
+        a = indexer.Position(1, 6)
+        b = indexer.Position(1, 6)
+        self.assertEqual(a, b)
 
-    def test_equal(self, obj):
-        self.wordbeg = 1
-        obj.wordbeg = 1
-        self.wordend = 6
-        obj.wordend = 6
-        self.assertTrue(self.__eq__(obj))
+    def test_not_equal(self):
+        a = indexer.Position(2, 5)
+        b = indexer.Position(4, 6)
+        self.assertNotEqual(a, b)
 
-    def test_not_equal(self, obj):
-        self.wordbeg = 1
-        obj.wordbeg = 2
-        self.wordend = 6
-        obj.wordend = 6
-        self.assertFalse(self.__eq__(obj))
 
-    def test_not_equal_all(self, obj):
-        self.wordbeg = 4
-        obj.wordbeg = 2
-        self.wordend = 5
-        obj.wordend = 3
-        self.assertFalse(self.__eq__(obj))
+class PositionWithLinesTest(unittest.TestCase):
+
+    def test_equal(self):
+        a = indexer.Position_with_lines(1, 6, 3)
+        b = indexer.Position_with_lines(1, 6, 3)
+        self.assertEqual(a, b)
+
+    def test_not_equal(self):
+        a = indexer.Position_with_lines(2, 5, 1)
+        b = indexer.Position_with_lines(4, 6, 1)
+        self.assertNotEqual(a, b)
         
 
 class IndexerTest(unittest.TestCase):
     
     def setUp(self):
-        self.testindexer = indexer.Indexer()
-        self.database = shelve.open("Плутон.txt", writeback=True)
-
-    def test_error_input_int(self):
-        with self.assertRaises(TypeError):
-           self.indexer.index(14198)
-           
-    def test_error_input_bool(self):
-        with self.assertRaises(TypeError):
-           self.indexer.index(True)
-           
-    def test_error_empty_input(self):
-        with self.assertRaises(TypeError):
-           self.indexer.index()    
+        self.testindexer = indexer.Indexer('database')
 
     def test_error_wrong_path(self):
-        with self.asserRaises(FileNotFoundError):
-            self.indexer.index("Текст.txt")
-            
-    def test_input_empty_text(self):
+        with self.assertRaises(FileNotFoundError):
+            self.testindexer.index("test.txt")
+            self.testindexer.closeDatabase()
+
+    def test_empty_input(self):
         testfile = open("text.txt", 'w' )
         testfile.write("")
-        self.assertEqual(self.indexer.index("text.txt"),
-                         dict(self.database)=={})
-        os.remove("text.txt")
+        testfile.close()
+        expectedresult = dict({})
+        self.testindexer.index("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)        
 
     def test_input_one_word(self):
         testfile = open("text.txt", 'w' )
         testfile.write("sun")
-        self.assertEqual(self.indexer.index("text.txt"),
-                         dict(self.database)=={"sun": {"text.txt": [Position(0,2)]}})
-        os.remove("text.txt")
+        testfile.close()
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,2)]}})
+        self.testindexer.index("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
         
     def test_input_two_same_words(self):
         testfile = open("text.txt", 'w' )
         testfile.write("sun sun")
-        self.assertEqual(self.indexer.index("text.txt"),
-                         dict(self.database)=={"sun": {"text.txt": [Position(0,2), Position(4,6)]}})
-        os.remove("text.txt")
+        testfile.close()
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,2),
+                                                    indexer.Position(4,6)]}})
+        self.testindexer.index("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
+
+    def test_input_two_files(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("sun")
+        testfile.close()
+        testfile2 = open("text2.txt", 'w' )
+        testfile2.write("sun")
+        testfile2.close()
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,2)],
+                               "text2.txt": [indexer.Position(0,2)]}})
+        self.testindexer.index("text.txt")
+        self.testindexer.index("text2.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
+
+    def test_input_sentence(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("This is a sentence sentence.")
+        testfile.close()
+        expectedresult = dict({"This": {"text.txt": [indexer.Position(0,3)]},
+                            "is": {"text.txt": [indexer.Position(5,6)]},
+                            "a": {"text.txt": [indexer.Position(8,8)]},
+                            "sentence": {"text.txt": [indexer.Position(10,17),
+                                                    indexer.Position(19,26)]}})
+        self.testindexer.index("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
+
+    def tearDown(self):
+        self.testindexer.closeDatabase()
+        for filename in os.listdir(os.getcwd()):
+            if (filename == "database" or filename.startswith('database.')):
+                os.remove(filename)
+            if "text.txt" in os.listdir(os.getcwd()):
+                os.remove("text.txt")
+
+
+class IndexerWithLinesTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.testindexer = indexer.Indexer('database')
+
+    def test_error_wrong_path(self):
+        with self.assertRaises(FileNotFoundError):
+            self.testindexer.index_with_lines("test.txt")
+            self.testindexer.closeDatabase()
+
+    def test_empty_input(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("")
+        testfile.close()
+        expectedresult = dict({})
+        self.testindexer.index_with_lines("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)        
+
+    def test_input_one_word(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("sun")
+        testfile.close()
+        expectedresult = dict({"sun": {"text.txt":[indexer.Position_with_lines(0,2,1)]}})
+        self.testindexer.index_with_lines("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
         
+    def test_input_two_same_words(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("sun sun")
+        testfile.close()
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position_with_lines(0,2,1),
+                                                    indexer.Position_with_lines(4,6,1)]}})
+        self.testindexer.index_with_lines("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
+
+    def test_input_two_files(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("sun")
+        testfile.close()
+        testfile2 = open("text2.txt", 'w' )
+        testfile2.write("sun")
+        testfile2.close()
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position_with_lines(0,2,1)],
+                               "text2.txt": [indexer.Position_with_lines(0,2,1)]}})
+        self.testindexer.index_with_lines("text.txt")
+        self.testindexer.index_with_lines("text2.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
+
+    def test_input_sentence(self):
+        testfile = open("text.txt", 'w' )
+        testfile.write("This is a sentence \nsentence.")
+        testfile.close()
+        expectedresult = dict({"This": {"text.txt": [indexer.Position_with_lines(0,3,1)]},
+                            "is": {"text.txt": [indexer.Position_with_lines(5,6,1)]},
+                            "a": {"text.txt": [indexer.Position_with_lines(8,8,1)]},
+                            "sentence": {"text.txt": [indexer.Position_with_lines(10,17,1),
+                                                    indexer.Position_with_lines(0,7,2)]}})
+        self.testindexer.index_with_lines("text.txt")
+        resulteddictionary = dict(shelve.open('database'))
+        self.assertEqual(resulteddictionary, expectedresult)
+
+    def tearDown(self):
+        self.testindexer.closeDatabase()
+        for filename in os.listdir(os.getcwd()):
+            if (filename == "database" or filename.startswith('database.')):
+                os.remove(filename)
+            if "text.txt" in os.listdir(os.getcwd()):
+                os.remove("text.txt")
+
+if __name__ == '__main__':
+    unittest.main()        
