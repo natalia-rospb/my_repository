@@ -53,7 +53,7 @@ class IndexerTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("sun")
         testfile.close()
-        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,2)]}})
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,3)]}})
         self.testindexer.index("text.txt")
         resulteddictionary = dict(shelve.open('database'))
         self.assertEqual(resulteddictionary, expectedresult)
@@ -62,8 +62,8 @@ class IndexerTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("sun sun")
         testfile.close()
-        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,2),
-                                                    indexer.Position(4,6)]}})
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,3),
+                                                    indexer.Position(4,7)]}})
         self.testindexer.index("text.txt")
         resulteddictionary = dict(shelve.open('database'))
         self.assertEqual(resulteddictionary, expectedresult)
@@ -75,8 +75,8 @@ class IndexerTest(unittest.TestCase):
         testfile2 = open("text2.txt", 'w' )
         testfile2.write("sun")
         testfile2.close()
-        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,2)],
-                               "text2.txt": [indexer.Position(0,2)]}})
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position(0,3)],
+                               "text2.txt": [indexer.Position(0,3)]}})
         self.testindexer.index("text.txt")
         self.testindexer.index("text2.txt")
         resulteddictionary = dict(shelve.open('database'))
@@ -86,11 +86,11 @@ class IndexerTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("This is a sentence sentence.")
         testfile.close()
-        expectedresult = dict({"This": {"text.txt": [indexer.Position(0,3)]},
-                            "is": {"text.txt": [indexer.Position(5,6)]},
-                            "a": {"text.txt": [indexer.Position(8,8)]},
-                            "sentence": {"text.txt": [indexer.Position(10,17),
-                                                    indexer.Position(19,26)]}})
+        expectedresult = dict({"This": {"text.txt": [indexer.Position(0,4)]},
+                            "is": {"text.txt": [indexer.Position(5,7)]},
+                            "a": {"text.txt": [indexer.Position(8,9)]},
+                            "sentence": {"text.txt": [indexer.Position(10,18),
+                                                    indexer.Position(19,27)]}})
         self.testindexer.index("text.txt")
         resulteddictionary = dict(shelve.open('database'))
         self.assertEqual(resulteddictionary, expectedresult)
@@ -127,7 +127,7 @@ class IndexerWithLinesTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("sun")
         testfile.close()
-        expectedresult = dict({"sun": {"text.txt":[indexer.Position_with_lines(0,2,1)]}})
+        expectedresult = dict({"sun": {"text.txt":[indexer.Position_with_lines(0,3,0)]}})
         self.testindexer.index_with_lines("text.txt")
         resulteddictionary = dict(shelve.open('database'))
         self.assertEqual(resulteddictionary, expectedresult)
@@ -136,8 +136,8 @@ class IndexerWithLinesTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("sun sun")
         testfile.close()
-        expectedresult = dict({"sun": {"text.txt": [indexer.Position_with_lines(0,2,1),
-                                                    indexer.Position_with_lines(4,6,1)]}})
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position_with_lines(0,3,0),
+                                                    indexer.Position_with_lines(4,7,0)]}})
         self.testindexer.index_with_lines("text.txt")
         resulteddictionary = dict(shelve.open('database'))
         self.assertEqual(resulteddictionary, expectedresult)
@@ -149,8 +149,8 @@ class IndexerWithLinesTest(unittest.TestCase):
         testfile2 = open("text2.txt", 'w' )
         testfile2.write("sun")
         testfile2.close()
-        expectedresult = dict({"sun": {"text.txt": [indexer.Position_with_lines(0,2,1)],
-                               "text2.txt": [indexer.Position_with_lines(0,2,1)]}})
+        expectedresult = dict({"sun": {"text.txt": [indexer.Position_with_lines(0,3,0)],
+                               "text2.txt": [indexer.Position_with_lines(0,3,0)]}})
         self.testindexer.index_with_lines("text.txt")
         self.testindexer.index_with_lines("text2.txt")
         resulteddictionary = dict(shelve.open('database'))
@@ -160,11 +160,11 @@ class IndexerWithLinesTest(unittest.TestCase):
         testfile = open("text.txt", 'w' )
         testfile.write("This is a sentence \nsentence.")
         testfile.close()
-        expectedresult = dict({"This": {"text.txt": [indexer.Position_with_lines(0,3,1)]},
-                            "is": {"text.txt": [indexer.Position_with_lines(5,6,1)]},
-                            "a": {"text.txt": [indexer.Position_with_lines(8,8,1)]},
-                            "sentence": {"text.txt": [indexer.Position_with_lines(10,17,1),
-                                                    indexer.Position_with_lines(0,7,2)]}})
+        expectedresult = dict({"This": {"text.txt": [indexer.Position_with_lines(0,4,0)]},
+                            "is": {"text.txt": [indexer.Position_with_lines(5,7,0)]},
+                            "a": {"text.txt": [indexer.Position_with_lines(8,9,0)]},
+                            "sentence": {"text.txt": [indexer.Position_with_lines(10,18,0),
+                                                    indexer.Position_with_lines(0,8,1)]}})
         self.testindexer.index_with_lines("text.txt")
         resulteddictionary = dict(shelve.open('database'))
         self.assertEqual(resulteddictionary, expectedresult)

@@ -86,7 +86,7 @@ class Indexer(object):
         """
         self.database = shelve.open(databasename, writeback=True)
 
-    def index (self, filename):
+    def index(self, filename):
         """
         This method indexes text and adds all alphabetical and digital
         tokens that it meet into a database with the text positions of
@@ -94,19 +94,19 @@ class Indexer(object):
         @param filename: name of the text file to be indexed
         """
         t = Tokenizator()
-        #checking the existance of the file during its opening
+        # checking the existance of the file during its opening
         try:
             file = open(filename)       
         except IOError:
             raise FileNotFoundError("File is not found")
-        #cycle on the text as on one string
+        # cycle on the text as on one string
         for token in t.generate_with_types(file.read()):
             if ((token.typ=="a") or (token.typ=="d")):
                 self.database.setdefault(token.word,{}).setdefault(
                     filename,[]).append(Position(token.position,
-                        (token.position+len(token.word)-1)))
+                        (token.position+len(token.word))))
         file.close()
-        #save and close database
+        # save and close database
         self.database.sync()
     
     def index_with_lines(self, filename):
@@ -118,20 +118,20 @@ class Indexer(object):
         @param filename: name of the text file to be indexed
         """
         t = Tokenizator()
-        #checking the existance of the file during its opening
+        # checking the existance of the file during its opening
         try:
             file = open(filename)       
         except IOError:
             raise FileNotFoundError("File is not found")
-        #cycle on each string of the text one after one
-        for line, string in enumerate(file):
-            for token in t.generate_with_types(string):
+        # cycle on each string of the text one after one
+        for linenumber, line in enumerate(file):
+            for token in t.generate_with_types(line):
                 if ((token.typ=="a") or (token.typ=="d")):
                     self.database.setdefault(token.word,{}).setdefault(
                         filename,[]).append(Position_with_lines(
-                            token.position, (token.position+len(token.word)-1),line+1))
+                            token.position, (token.position+len(token.word)),linenumber))
         file.close()
-        #save and close database
+        # save and close database
         self.database.sync()
 
     def closeDatabase(self):
@@ -141,7 +141,7 @@ class Indexer(object):
         self.database.close()
         
 def main():
-    #indexer = Indexer('database')
+    indexer = Indexer('database')
     #file = open('text.txt', 'w')
     #file.write('это мое предложение')
     #file.close()
@@ -150,7 +150,7 @@ def main():
     #file2 = open('text2.txt', 'w')
     #file2.write('this is a sentence \r\nto be be indexed')
     #file2.close()
-    #indexer.index_with_lines('text2.txt')
+    #indexer.index_with_lines('Плутон.txt')
     #os.remove('text2.txt')
 
     #indexer2.index_with_lines('tolstoy1.txt')
@@ -158,8 +158,7 @@ def main():
     #indexer2.index_with_lines('tolstoy3.txt')
     #indexer2.index_with_lines('tolstoy4.txt')
     #indexer.closeDatabase()
-    for token in dict(shelve.open('database')).items():
-        print(token)
+    print(dict(indexer.database.get("небо", {})))
     #print(dict(indexer.database))
     #indexer.closeDatabase()
     
