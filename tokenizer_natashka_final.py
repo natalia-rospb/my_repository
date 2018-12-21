@@ -134,10 +134,11 @@ class Tokenizator (object):
         
 text = "  // 194  This  14 program 225 can 655 cause 320//, tears  "
 text2 = "12This program can cause tears"
+text3 = "You can cope with everything!"
 # creating an instance of class Tokenizator
 t = Tokenizator()
 #tokenslist = list(t.tokenize_with_types(text2))
-tokenscollection = list(t.generate_with_types(text2))
+tokenscollection = list(t.generate_with_types(text3))
 #tokenscollection = list(t.generate(""))
 
 for token in tokenscollection:
