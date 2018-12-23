@@ -131,6 +131,12 @@ class Tokenizator (object):
         @return: list of TypeTokens
         """
         return list(self.generate_with_types(string))
+    
+    def generate_alpha_and_digits(self, string):
+        for token in self.generate_with_types(string):
+            if ((token.typ=="a") or (token.typ=="d")):
+                yield token
+        
         
 text = "  // 194  This  14 program 225 can 655 cause 320//, tears  "
 text2 = "12This program can cause tears"

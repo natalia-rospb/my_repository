@@ -1,6 +1,7 @@
 import indexer
 import os
 import shelve
+from tokenizer_natashka_final import Tokenizator
 
 
 class SearchEngine(object):
@@ -27,11 +28,33 @@ class SearchEngine(object):
         """
         if not isinstance(tokenquery, str):
             raise TypeError
-        
         return self.database.get(tokenquery,{})
 
-   # def several_tokens_search(self, tokenquerystring):
-        
+    def several_tokens_search(self, tokenquerystring):
+        t = Tokenizator()
+        if not isinstance(tokenquerystring, str):
+            raise TypeError
+        if (tokenquerystring == ""):
+            return {}
+        tokenizerresult = list(t.generate_alpha_and_digits(tokenquerystring))
+        searchresultarray = []
+        for token in tokenizerresult:
+            if token.word not in self.database:
+                return {}
+            else:
+                searchresultarray.append(self.search_by_token(token.word))
+        #print(searchresultarray)
+        filesset = set(searchresultarray[0])
+        for queryresult in searchresultarray:
+            filesset.intersection_update(queryresult)
+        #print(filesset)
+        resultedsearchdict = {}
+        for file in filesset:
+            for token in tokenizerresult:
+                #print(tokenizerresult)
+                resultedsearchdict.setdefault(file,[]).extend(
+                    self.database[token.word][file])
+        return resultedsearchdict
 
 def main():
     indexing = indexer.Indexer("database")
@@ -41,12 +64,23 @@ def main():
     file.close()
     indexing.index_with_lines('text.txt')
     os.remove('text.txt')
+    file2 = open('text2.txt', 'w')
+    file2.write('На розовом небе много облачков небе небе.')
+    file2.close()
+    indexing.index_with_lines('text2.txt')
+    os.remove('text2.txt')
+    file3 = open('text3.txt', 'w')
+    file3.write('На небе много облачков небе небе.')
+    file3.close()
+    indexing.index_with_lines('text3.txt')
+    os.remove('text3.txt')
     indexing.closeDatabase()
     search = SearchEngine("database")
     #tokenquery = "only"
-    tokenquery = "небе"
+    tokenquery = "облачков розовом небе"
     #print(search.search_by_token(tokenquery))
-    print(tokenquery, dict(search.search_by_token(tokenquery)))
+    #print(tokenquery, dict(search.search_by_token(tokenquery)))
+    print(search.several_tokens_search(tokenquery))
 
 if __name__=='__main__':
     main()
