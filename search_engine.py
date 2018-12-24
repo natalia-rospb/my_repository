@@ -22,15 +22,27 @@ class SearchEngine(object):
         """
         This method scans the database using a key - token, and returns
         all positions of this token in the database (position includes
-        the position of the beginning of the word, that of its end, and
-        the number of the line in which this token occurs).
+        the position of the beginning of the word, that of its end =
+        (position jf the beginning + len(word)), and the number of the
+        line in which this token occurs).
         @param tokenquery: the token to be looked for in the database
+        @return: dict with tokens as keys and information about their
+        positions from the database as values
         """
         if not isinstance(tokenquery, str):
             raise TypeError
         return self.database.get(tokenquery,{})
 
     def several_tokens_search(self, tokenquerystring):
+        """
+        This method scans the database for each token from tokenized
+        string and applies to them method search_by)token.
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @return resultedsearchdict: dict with files where ALL these tokens
+        were found as keys with their positions in these files accordingly
+        to the token's order in the query
+        """
         t = Tokenizator()
         if not isinstance(tokenquerystring, str):
             raise TypeError
@@ -43,15 +55,15 @@ class SearchEngine(object):
                 return {}
             else:
                 searchresultarray.append(self.search_by_token(token.word))
-        #print(searchresultarray)
+        # we need at least one element to create set
         filesset = set(searchresultarray[0])
         for queryresult in searchresultarray:
+            # filesset contains only filenames to exlude those files in
+            # which not all tokens were found
             filesset.intersection_update(queryresult)
-        #print(filesset)
         resultedsearchdict = {}
         for file in filesset:
             for token in tokenizerresult:
-                #print(tokenizerresult)
                 resultedsearchdict.setdefault(file,[]).extend(
                     self.database[token.word][file])
         return resultedsearchdict
@@ -77,10 +89,11 @@ def main():
     indexing.closeDatabase()
     search = SearchEngine("database")
     #tokenquery = "only"
-    tokenquery = "облачков розовом небе"
+    #tokenquery = "облачков розовом небе"
+    tokenquery = "небе"
     #print(search.search_by_token(tokenquery))
-    #print(tokenquery, dict(search.search_by_token(tokenquery)))
-    print(search.several_tokens_search(tokenquery))
+    print(tokenquery, dict(search.search_by_token(tokenquery)))
+    #print(search.several_tokens_search(tokenquery))
 
 if __name__=='__main__':
     main()
