@@ -207,5 +207,89 @@ class SearchEngineComplexTest(unittest.TestCase):
             if (filename == "text" or filename.startswith('text')):
                 os.remove(filename)
 
+class ContextWindowTest(unittest.TestCase):
+
+    def setUp(self):
+        self.testindexer = indexer.Indexer('database')
+
+    def test_context_window_search_one_token_several_files(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only kittens!")
+        testfile.close()
+        testfile2 = open("text2.txt", 'w')
+        testfile2.write("only...")
+        testfile2.close()
+        self.testindexer.index_with_lines("text.txt")
+        self.testindexer.index_with_lines("text2.txt")
+        testsearch = search_engine.SearchEngine('database')
+        searchresulteddictionary = testsearch.context_window_search("only", 3, 2)
+        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(0,5,0),
+                                             indexer.Position_with_lines(6,9,0),
+                                             indexer.Position_with_lines(10,14,0),
+                                             indexer.Position_with_lines(15,22,0)],
+                                "text2.txt": [indexer.Position_with_lines(0,4,0)]}
+        self.assertIsInstance(searchresulteddictionary, dict)
+        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+
+    def test_context_window_search_several_tokens_one_file(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only kittens meow // meoooow meooooooow wwwww!")
+        testfile.close()
+        self.testindexer.index_with_lines("text.txt")
+        testsearch = search_engine.SearchEngine('database')
+        searchresulteddictionary = testsearch.context_window_search("only kittens", 3, 3)
+        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(0,5,0),
+                                             indexer.Position_with_lines(6,9,0),
+                                             indexer.Position_with_lines(10,14,0),
+                                             indexer.Position_with_lines(15,22,0),
+                                             indexer.Position_with_lines(23,27,0),
+                                             indexer.Position_with_lines(31,38,0),
+                                             indexer.Position_with_lines(39,49,0)]}
+        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+        searchresulteddictionary = testsearch.context_window_search("only kittens and", 1,2)
+        expectedsearchresult = {}
+        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+        
+    def test_context_window_search_several_tokens_several_files(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only fluffy kittens!")
+        testfile.close()
+        testfile2 = open("text2.txt", 'w')
+        testfile2.write("only kittens and puppies...")
+        testfile2.close()
+        self.testindexer.index_with_lines("text2.txt")
+        self.testindexer.index_with_lines("text.txt")
+        testsearch = search_engine.SearchEngine('database')
+        searchresulteddictionary = testsearch.context_window_search("only kittens",1,1)
+        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(6,9,0),
+                                             indexer.Position_with_lines(10,14,0),
+                                             indexer.Position_with_lines(15,21,0),
+                                             indexer.Position_with_lines(22,29,0)],
+                                "text2.txt": [indexer.Position_with_lines(0,4,0),
+                                              indexer.Position_with_lines(5,12,0),
+                                              indexer.Position_with_lines(13,16,0)]}
+        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+        searchresulteddictionary = testsearch.context_window_search("only kittens and",1,1)
+        expectedsearchresult = {"text2.txt": [indexer.Position_with_lines(0,4,0),
+                                              indexer.Position_with_lines(5,12,0),
+                                              indexer.Position_with_lines(13,16,0),
+                                              indexer.Position_with_lines(17,24,0)]}
+        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+        searchresulteddictionary = testsearch.context_window_search("are kittens",1, 0)
+        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(0,5,0),
+                                              indexer.Position_with_lines(6,9,0)],
+                                "text.txt": [indexer.Position_with_lines(15,21,0),
+                                              indexer.Position_with_lines(22,29,0)]}
+        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+        #исправить тесты: среди позиций нужны только позиции искомого токена, остальных слов - нет!
+
+    def tearDown(self):
+        self.testindexer.closeDatabase()
+        for filename in os.listdir(os.getcwd()):
+            if (filename == "database" or filename.startswith('database.')):
+                os.remove(filename)
+            if (filename == "text" or filename.startswith('text')):
+                os.remove(filename)
+
 if __name__=='__main__':
     unittest.main() 
