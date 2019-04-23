@@ -213,6 +213,7 @@ class ContextWindowTest(unittest.TestCase):
         self.testindexer = indexer.Indexer('database')
 
     def test_context_window_search_one_token_several_files(self):
+        windowslist = []
         testfile = open("text.txt", 'w')
         testfile.write("There are only kittens!")
         testfile.close()
@@ -222,33 +223,20 @@ class ContextWindowTest(unittest.TestCase):
         self.testindexer.index_with_lines("text.txt")
         self.testindexer.index_with_lines("text2.txt")
         testsearch = search_engine.SearchEngine('database')
-        searchresulteddictionary = testsearch.context_window_search("only", 3, 2)
-        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(0,5,0),
-                                             indexer.Position_with_lines(6,9,0),
-                                             indexer.Position_with_lines(10,14,0),
-                                             indexer.Position_with_lines(15,22,0)],
-                                "text2.txt": [indexer.Position_with_lines(0,4,0)]}
-        self.assertIsInstance(searchresulteddictionary, dict)
-        self.assertEqual(searchresulteddictionary, expectedsearchresult)
-
-    def test_context_window_search_several_tokens_one_file(self):
-        testfile = open("text.txt", 'w')
-        testfile.write("There are only kittens meow // meoooow meooooooow wwwww!")
-        testfile.close()
-        self.testindexer.index_with_lines("text.txt")
-        testsearch = search_engine.SearchEngine('database')
-        searchresulteddictionary = testsearch.context_window_search("only kittens", 3, 3)
-        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(0,5,0),
-                                             indexer.Position_with_lines(6,9,0),
-                                             indexer.Position_with_lines(10,14,0),
-                                             indexer.Position_with_lines(15,22,0),
-                                             indexer.Position_with_lines(23,27,0),
-                                             indexer.Position_with_lines(31,38,0),
-                                             indexer.Position_with_lines(39,49,0)]}
-        self.assertEqual(searchresulteddictionary, expectedsearchresult)
-        searchresulteddictionary = testsearch.context_window_search("only kittens and", 1,2)
-        expectedsearchresult = {}
-        self.assertEqual(searchresulteddictionary, expectedsearchresult)
+        searchresult = testsearch.search_by_token("only")
+        windows = search_engine.ContextWindow.get_context_window_one_position_one_file(indexer.Position_with_lines(10,14,0),"text.txt",2,1)
+        windows2 = search_engine.ContextWindow.get_context_window_one_position_one_file(indexer.Position_with_lines(0,4,0),"text2.txt",2,1)
+        windowslist = search_engine.ContextWindow.get_context_window(searchresult,2,1)
+        expectedwindowresult1 = search_engine.ContextWindow("only",
+                        indexer.Position_with_lines(0,4,0),
+                        search_engine.WindowPosition(0,4,0,"text2.txt"))
+        expectedwindowresult2 = search_engine.ContextWindow("There are only kittens",
+                        indexer.Position_with_lines(10,14,0),
+                        search_engine.WindowPosition(0,22,0,"text.txt"))
+        self.assertEqual(expectedwindowresult1, windows2)
+        self.assertEqual(expectedwindowresult2, windows)
+        self.assertTrue(expectedwindowresult1 in windowslist)
+        self.assertTrue(expectedwindowresult2 in windowslist)
         
     def test_context_window_search_several_tokens_several_files(self):
         testfile = open("text.txt", 'w')
@@ -260,28 +248,52 @@ class ContextWindowTest(unittest.TestCase):
         self.testindexer.index_with_lines("text2.txt")
         self.testindexer.index_with_lines("text.txt")
         testsearch = search_engine.SearchEngine('database')
-        searchresulteddictionary = testsearch.context_window_search("only kittens",1,1)
-        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(6,9,0),
-                                             indexer.Position_with_lines(10,14,0),
-                                             indexer.Position_with_lines(15,21,0),
-                                             indexer.Position_with_lines(22,29,0)],
-                                "text2.txt": [indexer.Position_with_lines(0,4,0),
-                                              indexer.Position_with_lines(5,12,0),
-                                              indexer.Position_with_lines(13,16,0)]}
-        self.assertEqual(searchresulteddictionary, expectedsearchresult)
-        searchresulteddictionary = testsearch.context_window_search("only kittens and",1,1)
-        expectedsearchresult = {"text2.txt": [indexer.Position_with_lines(0,4,0),
-                                              indexer.Position_with_lines(5,12,0),
-                                              indexer.Position_with_lines(13,16,0),
-                                              indexer.Position_with_lines(17,24,0)]}
-        self.assertEqual(searchresulteddictionary, expectedsearchresult)
-        searchresulteddictionary = testsearch.context_window_search("are kittens",1, 0)
-        expectedsearchresult = {"text.txt": [indexer.Position_with_lines(0,5,0),
-                                              indexer.Position_with_lines(6,9,0)],
-                                "text.txt": [indexer.Position_with_lines(15,21,0),
-                                              indexer.Position_with_lines(22,29,0)]}
-        self.assertEqual(searchresulteddictionary, expectedsearchresult)
-        #исправить тесты: среди позиций нужны только позиции искомого токена, остальных слов - нет!
+        searchresult = testsearch.several_tokens_search("only kittens")
+
+        # context '0,0'
+        windowslist = search_engine.ContextWindow.get_context_window(searchresult,0,0)
+        print(windowslist)
+        expectedwindowresult1 = search_engine.ContextWindow("There are only fluffy kittens",
+                        [indexer.Position_with_lines(10,14,0),indexer.Position_with_lines(22,29,0)],
+                        search_engine.WindowPosition(6,29,0,"text.txt"))
+        expectedwindowresult2 = search_engine.ContextWindow("only kittens and puppies",
+                        [indexer.Position_with_lines(0,4,0),indexer.Position_with_lines(5,12,0)],
+                        search_engine.WindowPosition(0,12,0,"text2.txt"))
+        self.assertTrue(expectedwindowresult1 in windowslist)
+        self.assertTrue(expectedwindowresult2 in windowslist)
+
+        # context '1,1'
+        windowslist = search_engine.ContextWindow.get_context_window(searchresult,1,1)
+        expectedwindowresult1 = search_engine.ContextWindow("There are only fluffy kittens",
+                        [indexer.Position_with_lines(10,14,0),indexer.Position_with_lines(22,29,0)],
+                        search_engine.WindowPosition(6,29,0,"text.txt"))
+        expectedwindowresult2 = search_engine.ContextWindow("only kittens and puppies",
+                        [indexer.Position_with_lines(0,4,0),indexer.Position_with_lines(5,12,0)],
+                        search_engine.WindowPosition(0,16,0,"text2.txt"))
+        self.assertTrue(expectedwindowresult1 in windowslist)
+        self.assertTrue(expectedwindowresult2 in windowslist)
+        
+        # context '2,2'
+        windowslist = search_engine.ContextWindow.get_context_window(searchresult,2,2)
+        expectedwindowresult1 = search_engine.ContextWindow("There are only fluffy kittens",
+                        [indexer.Position_with_lines(10,14,0),indexer.Position_with_lines(22,29,0)],
+                        search_engine.WindowPosition(0,29,0,"text.txt"))
+        expectedwindowresult2 = search_engine.ContextWindow("only kittens and puppies",
+                        [indexer.Position_with_lines(0,4,0),indexer.Position_with_lines(5,12,0)],
+                        search_engine.WindowPosition(0,24,0,"text2.txt"))
+        self.assertTrue(expectedwindowresult1 in windowslist)
+        self.assertTrue(expectedwindowresult2 in windowslist)
+        
+        # context '3,3'
+        windowslist = search_engine.ContextWindow.get_context_window(searchresult,3,3)
+        expectedwindowresult1 = search_engine.ContextWindow("There are only fluffy kittens",
+                        [indexer.Position_with_lines(10,14,0),indexer.Position_with_lines(22,29,0)],
+                        search_engine.WindowPosition(0,29,0,"text.txt"))
+        expectedwindowresult2 = search_engine.ContextWindow("only kittens and puppies",
+                        [indexer.Position_with_lines(0,4,0),indexer.Position_with_lines(5,12,0)],
+                        search_engine.WindowPosition(0,24,0,"text2.txt"))
+        self.assertTrue(expectedwindowresult1 in windowslist)
+        self.assertTrue(expectedwindowresult2 in windowslist)
 
     def tearDown(self):
         self.testindexer.closeDatabase()
