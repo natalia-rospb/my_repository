@@ -75,6 +75,10 @@ class WindowPosition(object):
     def __init__(self, start, end, line, doc):
         """
         Creates an example of the class WindowPosition.
+        @param start: position of the first symbol of the window in the whole line
+        @param end: position of the the last symbol of the window + 1
+        @param line: number of the line in the document
+        @param doc: document where we take the context window from        
         """
         self.start = start
         self.end = end
@@ -83,7 +87,7 @@ class WindowPosition(object):
         
     def __eq__(self, obj):
         """
-        This method compares two window positions by their parameters
+        This method tells if two window positions are equal by their parameters
         @param self: Token positions which we are to compare
         @param obj: Token positions which we compare with our 'self' Token positions
         @return: True in case of equality, False in the opposite case
@@ -95,14 +99,25 @@ class WindowPosition(object):
 class ContextWindow(object):
     
     def __init__(self, wholestring, tokenposition, windowposition):
+        """
+        Creates an example of the class ContextWindow.
+        @param wholestring: whole document line where we take context window from
+        @param tokenposition: object of the class indexer.Position_with_lines,
+        it has wordbeg, wordend and line as attributes
+        @param windowposition: object of the class WindowPosition, it has start,
+        end, line and doc as attributes
+        """
         self.wholestring = wholestring
         self.tokenposition = tokenposition #wordbeg, wordend, line
         self.windowposition = windowposition #start, end and line
 
     def __repr__(self):
         """
-        This method represents array with tokens' positions in the text as
-        a citation. 
+        This method represents each context window as follows:
+        
+        'text of the context window'
+        [(x,y,line:z)] #tokenposition
+        windowposition: start=a end=b line=c doc=d  #windowposition
         """
         return ('\n\n' + str(self.wholestring[self.windowposition.start:
                  self.windowposition.end]) + '\n' + str(self.tokenposition)
@@ -120,22 +135,24 @@ class ContextWindow(object):
         return (self.tokenposition == obj.tokenposition
                 and self.windowposition == obj.windowposition)
 
-    def __lt__(self, obj):     
+    def __lt__(self, obj):
+        """
+        This method was necessary to arrange windows sorting 
+        """
         return ((self.windowposition.start < obj.windowposition.start) and
                 (self.windowposition.doc == obj.windowposition.doc))
     
     def get_context_window_one_position_one_file(tokenposition, doc, leftcontext, rightcontext):
         """
-        This method performs several_tokens_search in text, saves necessary
-        strings as its attributes and finally is able to represent context
-        window of customizable size.
-        @param searchresult: database we get after search engine run
+        This method can construct a context window of customizable size.
+        @param tokenposition: position of the token
+        @param doc: name of the document to work with
         @param leftcontext: number of words from the left side of the token
         to be added to the context window
         @param rightcontext: number of words from the right side of the token
         to be added to the context window
-        @return mylist: list with context windows. With the method __repr__
-        it can(will) be presented as a citation from the text.
+        @return mycontextwindow: object of the type ContextWindow,
+        window for ONE position in ONE document
         """
         tokenizerresult = []
         t = Tokenizator()
@@ -156,7 +173,6 @@ class ContextWindow(object):
         for i, token in enumerate(tokenizerresult):
             if i==0:
                 leftstart = tokenposition.wordbeg
-                
                 if i == leftcontext:
                     leftstart = tokenposition.wordbeg
                     break
@@ -191,19 +207,36 @@ class ContextWindow(object):
         return mycontextwindow
 
     def get_context_window(searchresult, leftcontext, rightcontext):
+        """
+        This method can give you all context windows suitable for your query
+        @param searchresult: database with indexed search results
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return mybigdict: dictionary where document names are keys and lists of
+        context windows in each document are their values
+        """
         mylistfordoc = []
         mybigdict = {}
+        #constructing a dictionary of separate CWs for each position
         for doc in searchresult:
             mybigdict[doc]=[]
             for tokenposition in searchresult[doc]:
                 cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
                                                         doc, leftcontext, rightcontext)
                 mybigdict[doc].append(cw)
+        # windows intersection
         for doc in mybigdict:
             mybigdict[doc] = ContextWindow.check_and_unite_context_windows(mybigdict[doc])
         return mybigdict
 
     def check_and_unite_context_windows(mybiglist):
+        """
+        This method works with one list and intersect its CWs if it's possible
+        @param mybiglist: list in question
+        @return mybigdict: resulted list with already united CWs (if there could be some)
+        """
         mybiglist.sort()
         i = 0
         if (len(mybiglist)>1):
@@ -247,7 +280,7 @@ def main():
     
     searchresult = dict(search.several_tokens_search(tokenquery2))  
     print(searchresult)
-    print(ContextWindow.get_context_window(searchresult,2,2))
+    print(ContextWindow.get_context_window(searchresult,1,1))
 ##    print(ContextWindow.get_context_window_one_position_one_file
 ##          (indexer.Position_with_lines(8,13,0),"text.txt",0,1))
 
