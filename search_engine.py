@@ -191,30 +191,36 @@ class ContextWindow(object):
         return mycontextwindow
 
     def get_context_window(searchresult, leftcontext, rightcontext):
-        mybiglist = []
+        mylistfordoc = []
+        mybigdict = {}
         for doc in searchresult:
+            mybigdict[doc]=[]
             for tokenposition in searchresult[doc]:
-                mybiglist.append(ContextWindow.get_context_window_one_position_one_file
-                        (tokenposition, doc, leftcontext, rightcontext))
-            
-            result = ContextWindow.check_and_unite_context_windows(mybiglist)
-        return result
+                cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
+                                                        doc, leftcontext, rightcontext)
+                mybigdict[doc].append(cw)
+        for doc in mybigdict:
+            mybigdict[doc] = ContextWindow.check_and_unite_context_windows(mybigdict[doc])
+        return mybigdict
 
     def check_and_unite_context_windows(mybiglist):
         mybiglist.sort()
-        for i, item in enumerate(mybiglist):
-            if (len(mybiglist)>1 and i <= len(mybiglist)-1):
-                if (mybiglist[i].windowposition.doc==mybiglist[i-1].windowposition.doc):
-                    if (mybiglist[i].windowposition.line==mybiglist[i-1].windowposition.line):
-                        if ((mybiglist[i].windowposition.start < mybiglist[i-1].windowposition.end)
-                            and (mybiglist[i].windowposition.end > mybiglist[i-1].windowposition.start)):
-                            mynewcw = ContextWindow(mybiglist[i-1].wholestring,
-                                [mybiglist[i].tokenposition,mybiglist[i-1].tokenposition],
-                                WindowPosition(mybiglist[i-1].windowposition.start,mybiglist[i].windowposition.end,
-                                mybiglist[i-1].windowposition.line,mybiglist[i-1].windowposition.doc))
+        i = 0
+        if (len(mybiglist)>1):
+            while (i < len(mybiglist)-1):
+                if(mybiglist[i].windowposition.doc==mybiglist[i+1].windowposition.doc):
+                    if (mybiglist[i].windowposition.line==mybiglist[i+1].windowposition.line):
+                        if ((mybiglist[i].windowposition.start < mybiglist[i+1].windowposition.end)
+                            and (mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start)):
+                            mynewcw = ContextWindow(mybiglist[i+1].wholestring,
+                                [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
+                                WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
+                                mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
+                            mybiglist.pop(i+1)
+                            mybiglist.insert(i+1, mynewcw)
                             mybiglist.pop(i)
-                            mybiglist.pop(i-1)
-                            mybiglist.insert(i-1, mynewcw)
+                        else:
+                            i = i+1
         return mybiglist        
 
 def main():
@@ -239,11 +245,11 @@ def main():
     tokenquery = "облачков розовом небе"
     tokenquery2 = "небе много"
     
-    searchresult = dict(search.several_tokens_search(tokenquery2))
+    searchresult = dict(search.several_tokens_search(tokenquery2))  
     print(searchresult)
     print(ContextWindow.get_context_window(searchresult,2,2))
 ##    print(ContextWindow.get_context_window_one_position_one_file
-##          (indexer.Position_with_lines(22,26,0),"text3.txt",0,1))
+##          (indexer.Position_with_lines(8,13,0),"text.txt",0,1))
 
 if __name__=='__main__':
     main()
