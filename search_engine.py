@@ -122,10 +122,9 @@ class SearchEngine(object):
                             i = i+1
         return mybiglist
 
-    @classmethod
-    def several_tokens_search_with_context(cls, tokenquerystring, leftcontext, rightcontext):
-        searchresult = cls("database").several_tokens_search(tokenquerystring)
-        contextwindowsresult = cls("database").get_context_windows(searchresult, leftcontext, rightcontext)
+    def several_tokens_search_with_context(self, tokenquerystring, leftcontext, rightcontext):
+        searchresult = self.several_tokens_search(tokenquerystring)
+        contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
         return contextwindowsresult
         
 
@@ -286,13 +285,13 @@ def main():
     indexing.index_with_lines('text3.txt')
     #os.remove('text3.txt')
     indexing.closeDatabase()
-    ##search = SearchEngine("database")
+    search = SearchEngine("database")
     tokenquery = "облачков розовом небе"
     tokenquery2 = "небе много"
     
     ##searchresult = dict(search.several_tokens_search(tokenquery2))  
     ##print(searchresult)
-    print(SearchEngine.several_tokens_search_with_context(tokenquery2,1,1))
+    print(search.several_tokens_search_with_context(tokenquery2,1,1))
 ##    print(ContextWindow.get_context_window_one_position_one_file
 ##          (indexer.Position_with_lines(8,13,0),"text.txt",0,1))
 
