@@ -69,12 +69,72 @@ class SearchEngine(object):
                     self.database[token.word][file])
         return resultedsearchdict
 
+    @staticmethod
+    def get_context_windows(searchresult, leftcontext, rightcontext):
+        """
+        This method can give you all context windows suitable for your query
+        @param searchresult: database with indexed search results
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return mybigdict: dictionary where document names are keys and lists of
+        context windows in each document are their values
+        """
+        mylistfordoc = []
+        mybigdict = {}
+        #constructing a dictionary of separate CWs for each position
+        for doc in searchresult:
+            mybigdict[doc]=[]
+            for tokenposition in searchresult[doc]:
+                window = ContextWindow
+                cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
+                                                        doc, leftcontext, rightcontext)
+                mybigdict[doc].append(cw)
+        # windows intersection
+        for doc in mybigdict:
+            mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
+        return mybigdict
+
+    @staticmethod
+    def check_and_unite_context_windows(mybiglist):
+        """
+        This method works with one list and intersect its CWs if it's possible
+        @param mybiglist: list in question
+        @return mybigdict: resulted list with already united CWs (if there could be some)
+        """
+        mybiglist.sort()
+        i = 0
+        if (len(mybiglist)>1):
+            while (i < len(mybiglist)-1):
+                if(mybiglist[i].windowposition.doc==mybiglist[i+1].windowposition.doc):
+                    if (mybiglist[i].windowposition.line==mybiglist[i+1].windowposition.line):
+                        if ((mybiglist[i].windowposition.start < mybiglist[i+1].windowposition.end)
+                            and (mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start)):
+                            mynewcw = ContextWindow(mybiglist[i+1].wholestring,
+                                [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
+                                WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
+                                mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
+                            mybiglist.pop(i+1)
+                            mybiglist.insert(i+1, mynewcw)
+                            mybiglist.pop(i)
+                        else:
+                            i = i+1
+        return mybiglist
+
+    @classmethod
+    def several_tokens_search_with_context(cls, tokenquerystring, leftcontext, rightcontext):
+        searchresult = cls("database").several_tokens_search(tokenquerystring)
+        contextwindowsresult = cls("database").get_context_windows(searchresult, leftcontext, rightcontext)
+        return contextwindowsresult
+        
+
 
 class WindowPosition(object):
     
     def __init__(self, start, end, line, doc):
         """
-        Creates an example of the class WindowPosition.
+        Creates an instance of the class WindowPosition.
         @param start: position of the first symbol of the window in the whole line
         @param end: position of the the last symbol of the window + 1
         @param line: number of the line in the document
@@ -100,7 +160,7 @@ class ContextWindow(object):
     
     def __init__(self, wholestring, tokenposition, windowposition):
         """
-        Creates an example of the class ContextWindow.
+        Creates an instance of the class ContextWindow.
         @param wholestring: whole document line where we take context window from
         @param tokenposition: object of the class indexer.Position_with_lines,
         it has wordbeg, wordend and line as attributes
@@ -142,7 +202,8 @@ class ContextWindow(object):
         return ((self.windowposition.start < obj.windowposition.start) and
                 (self.windowposition.doc == obj.windowposition.doc))
     
-    def get_context_window_one_position_one_file(tokenposition, doc, leftcontext, rightcontext):
+    @classmethod
+    def get_context_window_one_position_one_file(cls, tokenposition, doc, leftcontext, rightcontext):
         """
         This method can construct a context window of customizable size.
         @param tokenposition: position of the token
@@ -201,61 +262,12 @@ class ContextWindow(object):
                 if i == rightcontext or i == len(tokenizerresult)-1:
                     rightend = tokenposition.wordbeg + rightend
                     break
-        mycontextwindow = ContextWindow(contextline, indexer.Position_with_lines(
+        mycontextwindow = cls(contextline, indexer.Position_with_lines(
             tokenposition.wordbeg, tokenposition.wordend, tokenposition.line),
                             WindowPosition(leftstart,rightend,lineno,doc))
         return mycontextwindow
 
-    def get_context_window(searchresult, leftcontext, rightcontext):
-        """
-        This method can give you all context windows suitable for your query
-        @param searchresult: database with indexed search results
-        @param leftcontext: number of words from the left side of the token
-        to be added to the context window
-        @param rightcontext: number of words from the right side of the token
-        to be added to the context window
-        @return mybigdict: dictionary where document names are keys and lists of
-        context windows in each document are their values
-        """
-        mylistfordoc = []
-        mybigdict = {}
-        #constructing a dictionary of separate CWs for each position
-        for doc in searchresult:
-            mybigdict[doc]=[]
-            for tokenposition in searchresult[doc]:
-                cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
-                                                        doc, leftcontext, rightcontext)
-                mybigdict[doc].append(cw)
-        # windows intersection
-        for doc in mybigdict:
-            mybigdict[doc] = ContextWindow.check_and_unite_context_windows(mybigdict[doc])
-        return mybigdict
-
-    def check_and_unite_context_windows(mybiglist):
-        """
-        This method works with one list and intersect its CWs if it's possible
-        @param mybiglist: list in question
-        @return mybigdict: resulted list with already united CWs (if there could be some)
-        """
-        mybiglist.sort()
-        i = 0
-        if (len(mybiglist)>1):
-            while (i < len(mybiglist)-1):
-                if(mybiglist[i].windowposition.doc==mybiglist[i+1].windowposition.doc):
-                    if (mybiglist[i].windowposition.line==mybiglist[i+1].windowposition.line):
-                        if ((mybiglist[i].windowposition.start < mybiglist[i+1].windowposition.end)
-                            and (mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start)):
-                            mynewcw = ContextWindow(mybiglist[i+1].wholestring,
-                                [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
-                                WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
-                                mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
-                            mybiglist.pop(i+1)
-                            mybiglist.insert(i+1, mynewcw)
-                            mybiglist.pop(i)
-                        else:
-                            i = i+1
-        return mybiglist        
-
+    
 def main():
     indexing = indexer.Indexer("database")
     file = open('text.txt', 'w')
@@ -274,13 +286,13 @@ def main():
     indexing.index_with_lines('text3.txt')
     #os.remove('text3.txt')
     indexing.closeDatabase()
-    search = SearchEngine("database")
+    ##search = SearchEngine("database")
     tokenquery = "облачков розовом небе"
     tokenquery2 = "небе много"
     
-    searchresult = dict(search.several_tokens_search(tokenquery2))  
-    print(searchresult)
-    print(ContextWindow.get_context_window(searchresult,1,1))
+    ##searchresult = dict(search.several_tokens_search(tokenquery2))  
+    ##print(searchresult)
+    print(SearchEngine.several_tokens_search_with_context(tokenquery2,1,1))
 ##    print(ContextWindow.get_context_window_one_position_one_file
 ##          (indexer.Position_with_lines(8,13,0),"text.txt",0,1))
 
