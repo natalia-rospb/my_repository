@@ -95,7 +95,6 @@ class SearchEngine(object):
         # windows intersection
         for doc in mybigdict:
             mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
-        #ContextWindow.get_sentence_context_window(tokenposition, doc, leftcontext, rightcontext)
         return mybigdict
 
     @staticmethod
@@ -124,11 +123,38 @@ class SearchEngine(object):
                             i = i+1
         return mybiglist
 
-    def several_tokens_search_with_context(self, tokenquerystring, leftcontext, rightcontext):
+    def several_tokens_search_with_customizable_context(self, tokenquerystring, leftcontext, rightcontext):
+        """
+        This method gives CWs of customizable size
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return contextwindowsresult: dict with docs as keys and CWs as values
+        """
         searchresult = self.several_tokens_search(tokenquerystring)
-        contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
-        
+        contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)        
         return contextwindowsresult
+
+    def several_tokens_search_with_sentence_context(self, tokenquerystring, leftcontext, rightcontext):
+        """
+        This method enlarges CWs until sentence boundaries on both sides or, if there are no boundary, until
+        the position of the start or the end of the line.
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return contextwindowsresult: dict with docs as keys and CWs as values
+        """
+        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring,leftcontext,rightcontext)
+        for key in contextsearch.keys():
+            cw = contextsearch[key][0]
+            cw.get_sentence_context_window()
+        return contextsearch
 
 
 class WindowPosition(object):
@@ -269,25 +295,33 @@ class ContextWindow(object):
         return mycontextwindow
 
     def get_sentence_context_window(self):
+        """
+        This method changes ContextWindow.windowposition to include complete
+        sentence which results from existing ContextWindow. If existing
+        ContextWindow include parts of several sentences, all of them will
+        be added to the ContextWindow in question.
+        @param self: ContextWindow object to be enlarged
+        @return self: the same CW object with changed windowposition.start and windowposition.end
+        """
         start_boundary = re.compile(r'[A-ZА-Я]\s[.?!]')
         end_boundary = re.compile(r'[.?!]\s[A-ZА-Я]')
         before_cw = self.wholestring[:self.windowposition.start+1]
         after_cw = self.wholestring[self.windowposition.end:]
         start_result = re.findall(start_boundary, before_cw[::-1])
         end_result = re.findall(end_boundary, after_cw)
+        #right sentence boundary
         if end_result == []:
             self.windowposition.end = len(self.wholestring)
         else:
             pos = after_cw.find(end_result[0])
             self.windowposition.end = self.windowposition.end + pos + 1
-            
+        #left sentence boundary    
         if start_result == []:
             self.windowposition.start = 0
         else:
             pos = before_cw[::-1].find(start_result[0])
             self.windowposition.start = len(before_cw) - pos - 1
         return self
-        
 
     
 def main():
@@ -313,10 +347,8 @@ def main():
     tokenquery2 = "Много"
     ##searchresult = dict(search.several_tokens_search(tokenquery2))  
     ##print(searchresult)
-    contextsearch = search.several_tokens_search_with_context(tokenquery2,2,1)
-    for key in contextsearch.keys():
-        cw = contextsearch[key][0]
-        print(cw.get_sentence_context_window())
+    contextsearch = search.several_tokens_search_with_sentence_context(tokenquery2,0,1)
+    print(contextsearch)
     
 
 if __name__=='__main__':
