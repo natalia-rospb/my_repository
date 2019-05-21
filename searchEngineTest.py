@@ -328,6 +328,40 @@ class ContextWindowTest(unittest.TestCase):
                                     [indexer.Position_with_lines(0,4,0),indexer.Position_with_lines(5,12,0)],
                                      search_engine.WindowPosition(0,24,0,"text2.txt"))]}
         self.assertEqual(expectedwindowresult, windowsdict)
+        
+    def test_context_window_search_sentence_extension(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only fluffy kittens! Only kittens")
+        testfile.close()
+        self.testindexer.index_with_lines("text.txt")
+        testsearch = search_engine.SearchEngine('database')
+        
+        windowsdict = testsearch.several_tokens_search_with_context("only",0,0)
+        expectedwindowresult = search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
+                                    indexer.Position_with_lines(10,14,0),
+                                     search_engine.WindowPosition(0,30,0,"text.txt"))
+        for key in windowsdict.keys():
+            cw = windowsdict[key][0]
+            result = cw.get_sentence_context_window()
+            self.assertEqual(result, expectedwindowresult)
+            
+        windowsdict = testsearch.several_tokens_search_with_context("only fluffy",3,3)
+        expectedwindowresult = search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
+                                    [indexer.Position_with_lines(10,14,0),indexer.Position_with_lines(15,21,0)],
+                                     search_engine.WindowPosition(0,43,0,"text.txt"))
+        for key in windowsdict.keys():
+            cw = windowsdict[key][0]
+            result = cw.get_sentence_context_window()
+            self.assertEqual(result, expectedwindowresult)
+            
+        windowsdict = testsearch.several_tokens_search_with_context("kittens",1,1)
+        expectedwindowresult = search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
+                                    [indexer.Position_with_lines(22,29,0),indexer.Position_with_lines(36,43,0)],
+                                     search_engine.WindowPosition(0,43,0,"text.txt"))
+        for key in windowsdict.keys():
+            cw = windowsdict[key][0]
+            result = cw.get_sentence_context_window()
+            self.assertEqual(result, expectedwindowresult)
 
     def tearDown(self):
         self.testindexer.closeDatabase()

@@ -3,6 +3,7 @@ import os
 import shelve
 from tokenizer_natashka_final import Tokenizator
 import linecache
+import re
 
 
 class SearchEngine(object):
@@ -94,6 +95,7 @@ class SearchEngine(object):
         # windows intersection
         for doc in mybigdict:
             mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
+        #ContextWindow.get_sentence_context_window(tokenposition, doc, leftcontext, rightcontext)
         return mybigdict
 
     @staticmethod
@@ -125,8 +127,8 @@ class SearchEngine(object):
     def several_tokens_search_with_context(self, tokenquerystring, leftcontext, rightcontext):
         searchresult = self.several_tokens_search(tokenquerystring)
         contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
-        return contextwindowsresult
         
+        return contextwindowsresult
 
 
 class WindowPosition(object):
@@ -266,16 +268,37 @@ class ContextWindow(object):
                             WindowPosition(leftstart,rightend,lineno,doc))
         return mycontextwindow
 
+    def get_sentence_context_window(self):
+        start_boundary = re.compile(r'[A-ZА-Я]\s[.?!]')
+        end_boundary = re.compile(r'[.?!]\s[A-ZА-Я]')
+        before_cw = self.wholestring[:self.windowposition.start+1]
+        after_cw = self.wholestring[self.windowposition.end:]
+        start_result = re.findall(start_boundary, before_cw[::-1])
+        end_result = re.findall(end_boundary, after_cw)
+        if end_result == []:
+            self.windowposition.end = len(self.wholestring)
+        else:
+            pos = after_cw.find(end_result[0])
+            self.windowposition.end = self.windowposition.end + pos + 1
+            
+        if start_result == []:
+            self.windowposition.start = 0
+        else:
+            pos = before_cw[::-1].find(start_result[0])
+            self.windowposition.start = len(before_cw) - pos - 1
+        return self
+        
+
     
 def main():
     indexing = indexer.Indexer("database")
     file = open('text.txt', 'w')
-    file.write('На небе много фиолетовых облачков')
+    file.write('На небе. Много. Фиолетовых облачков')
     file.close()
     indexing.index_with_lines('text.txt')
     #os.remove('text.txt')
     file2 = open('text2.txt', 'w')
-    file2.write('На розоватом небе небе много облачков маленьких')
+    file2.write('На розоватом. Небе небе. Много облачков маленьких. J')
     file2.close()
     indexing.index_with_lines('text2.txt')
     #os.remove('text2.txt')
@@ -287,13 +310,14 @@ def main():
     indexing.closeDatabase()
     search = SearchEngine("database")
     tokenquery = "облачков розовом небе"
-    tokenquery2 = "небе много"
-    
+    tokenquery2 = "Много"
     ##searchresult = dict(search.several_tokens_search(tokenquery2))  
     ##print(searchresult)
-    print(search.several_tokens_search_with_context(tokenquery2,1,1))
-##    print(ContextWindow.get_context_window_one_position_one_file
-##          (indexer.Position_with_lines(8,13,0),"text.txt",0,1))
+    contextsearch = search.several_tokens_search_with_context(tokenquery2,2,1)
+    for key in contextsearch.keys():
+        cw = contextsearch[key][0]
+        print(cw.get_sentence_context_window())
+    
 
 if __name__=='__main__':
     main()
