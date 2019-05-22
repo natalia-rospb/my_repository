@@ -123,16 +123,25 @@ class SearchEngine(object):
                             and (mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start)):
                             if str(mybiglist[i].wholestring) == str(mybiglist[i+1].wholestring):
                                 wholestring = mybiglist[i].wholestring
+                                mynewcw = ContextWindow(wholestring,
+                                    [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
+                                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
+                                    mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
+                                mybiglist.pop(i+1)
+                                mybiglist.insert(i+1, mynewcw)
+                                mybiglist.pop(i)
                             else:
-                                wholestring = str(mybiglist[i].wholestring[:mybiglist[i].tokenposition.wordend + 1] +
-                                     mybiglist[i+1].wholestring[mybiglist[i].tokenposition.wordend:])
-                            mynewcw = ContextWindow(wholestring,
-                                [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
-                                WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
-                                mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
-                            mybiglist.pop(i+1)
-                            mybiglist.insert(i+1, mynewcw)
-                            mybiglist.pop(i)
+                                wholestring = str(mybiglist[i].wholestring[:mybiglist[i].tokenposition.wordend] +
+                                     mybiglist[i+1].wholestring[mybiglist[i].tokenposition.wordend-7:])
+                                newposition = indexer.Position_with_lines(mybiglist[i+1].tokenposition.wordbeg + 7,
+                                                        mybiglist[i+1].tokenposition.wordend + 7, mybiglist[i+1].tokenposition.line)
+                                mynewcw = ContextWindow(wholestring,
+                                    [mybiglist[i].tokenposition,newposition],
+                                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end + 7,
+                                    mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
+                                mybiglist.pop(i+1)
+                                mybiglist.insert(i+1, mynewcw)
+                                mybiglist.pop(i)
                         else:
                             i = i+1
         return mybiglist
@@ -368,7 +377,7 @@ def main():
     file.close()
     indexing.index_with_lines('text.txt')
     file2 = open('text2.txt', 'w')
-    file2.write('На розоватом. Небе небе Много облачков маленьких. J')
+    file2.write('На розоватом. Небе небе много облачков маленьких. J')
     file2.close()
     indexing.index_with_lines('text2.txt')
     file3 = open('text3.txt', 'w')
@@ -378,11 +387,13 @@ def main():
     indexing.closeDatabase()
     search = SearchEngine("database")
     tokenquery = "небе"
-    tokenquery2 = "Много"
+    tokenquery2 = "много облачков"
 ##    searchresult = search.several_tokens_search_with_sentence_context(tokenquery, 2, 2) 
 ##    print(searchresult)
-    contextsearch = search.highlighted_context_window_search(tokenquery, 2, 2)
-    print(contextsearch)
+    contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 2)
+    contextsearch2 = search.highlighted_context_window_search(tokenquery2, 2, 2)
+    print(contextsearch1)
+    print(contextsearch2)
     search.closeDatabase()
     
 
