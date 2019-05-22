@@ -20,6 +20,17 @@ class SearchEngine(object):
         """
         self.database = shelve.open(databasename, writeback=True)
 
+    def closeDatabase(self):
+        """
+        This method allows to close database.
+        """
+        self.database.close()
+        for filename in os.listdir(os.getcwd()):
+            if (filename.startswith('database.')):
+                os.remove(filename)
+            if (filename.startswith('text')):
+                os.remove(filename)
+
     def search_by_token(self, tokenquery):
         """
         This method scans the database using a key - token, and returns
@@ -82,13 +93,11 @@ class SearchEngine(object):
         @return mybigdict: dictionary where document names are keys and lists of
         context windows in each document are their values
         """
-        mylistfordoc = []
         mybigdict = {}
         #constructing a dictionary of separate CWs for each position
         for doc in searchresult:
             mybigdict[doc]=[]
             for tokenposition in searchresult[doc]:
-                window = ContextWindow
                 cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
                                                         doc, leftcontext, rightcontext)
                 mybigdict[doc].append(cw)
@@ -104,7 +113,7 @@ class SearchEngine(object):
         @param mybiglist: list in question
         @return mybigdict: resulted list with already united CWs (if there could be some)
         """
-        mybiglist.sort()
+        #mybiglist.sort()
         i = 0
         if (len(mybiglist)>1):
             while (i < len(mybiglist)-1):
@@ -112,7 +121,12 @@ class SearchEngine(object):
                     if (mybiglist[i].windowposition.line==mybiglist[i+1].windowposition.line):
                         if ((mybiglist[i].windowposition.start < mybiglist[i+1].windowposition.end)
                             and (mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start)):
-                            mynewcw = ContextWindow(mybiglist[i+1].wholestring,
+                            if str(mybiglist[i].wholestring) == str(mybiglist[i+1].wholestring):
+                                wholestring = mybiglist[i].wholestring
+                            else:
+                                wholestring = str(mybiglist[i].wholestring[:mybiglist[i].tokenposition.wordend + 1] +
+                                     mybiglist[i+1].wholestring[mybiglist[i].tokenposition.wordend:])
+                            mynewcw = ContextWindow(wholestring,
                                 [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
                                 WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
                                 mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
@@ -135,7 +149,7 @@ class SearchEngine(object):
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
         searchresult = self.several_tokens_search(tokenquerystring)
-        contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)        
+        contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
         return contextwindowsresult
 
     def several_tokens_search_with_sentence_context(self, tokenquerystring, leftcontext, rightcontext):
@@ -150,12 +164,35 @@ class SearchEngine(object):
         to be added to the context window
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
-        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring,leftcontext,rightcontext)
-        for key in contextsearch.keys():
-            cw = contextsearch[key][0]
-            cw.get_sentence_context_window()
+        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring, leftcontext, rightcontext)
+        for doc in contextsearch.keys():
+            for item in contextsearch[doc]:
+                item.get_sentence_context_window()
+            contextsearch[doc] = SearchEngine.check_and_unite_context_windows(contextsearch[doc])
         return contextsearch
 
+    def highlighted_context_window_search(self, tokenquerystring, leftcontext, rightcontext):
+        searchresult = self.several_tokens_search(tokenquerystring)
+        mybigdict = {}
+        mycitationdict = {}
+        #constructing a dictionary of separate CWs for each position
+        for doc in searchresult:
+            mybigdict[doc]=[]
+            for tokenposition in searchresult[doc]:
+                cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
+                                                        doc, leftcontext, rightcontext)
+                cw.get_context_window_bold()
+                mybigdict[doc].append(cw)
+        # windows intersection
+        for doc in mybigdict:
+            mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
+            #print(doc, mybigdict[doc])  
+            mycitationlist = []
+            for cw in mybigdict[doc]:
+                mycitationlist.append(cw.wholestring[cw.windowposition.start:cw.windowposition.end])  
+            mycitationdict[doc] = mycitationlist
+        return mycitationdict
+                
 
 class WindowPosition(object):
     
@@ -317,6 +354,12 @@ class ContextWindow(object):
             self.windowposition.start = 0
         else:
             self.windowposition.start = len(before_cw) - start_result.start() - 1
+
+    def get_context_window_bold(self):
+        self.wholestring = self.wholestring[:self.tokenposition.wordend] + '</B>' + self.wholestring[self.tokenposition.wordend:]
+        self.windowposition.end += 7
+        self.wholestring = self.wholestring[:self.tokenposition.wordbeg] + '<B>' + self.wholestring[self.tokenposition.wordbeg:]
+        self.tokenposition.wordend += 7
     
 def main():
     indexing = indexer.Indexer("database")
@@ -324,25 +367,23 @@ def main():
     file.write('На небе. Много. Фиолетовых облачков')
     file.close()
     indexing.index_with_lines('text.txt')
-    #os.remove('text.txt')
     file2 = open('text2.txt', 'w')
     file2.write('На розоватом. Небе небе Много облачков маленьких. J')
     file2.close()
     indexing.index_with_lines('text2.txt')
-    #os.remove('text2.txt')
     file3 = open('text3.txt', 'w')
     file3.write('На голубом преголубом небе много облачков небе. \n птичек \n звезд')
     file3.close()
     indexing.index_with_lines('text3.txt')
-    #os.remove('text3.txt')
     indexing.closeDatabase()
     search = SearchEngine("database")
-    tokenquery = "облачков"
+    tokenquery = "небе"
     tokenquery2 = "Много"
-    ##searchresult = dict(search.several_tokens_search(tokenquery2))  
-    ##print(searchresult)
-    contextsearch = search.several_tokens_search_with_sentence_context(tokenquery, 0, 0)
+##    searchresult = search.several_tokens_search_with_sentence_context(tokenquery, 2, 2) 
+##    print(searchresult)
+    contextsearch = search.highlighted_context_window_search(tokenquery, 2, 2)
     print(contextsearch)
+    search.closeDatabase()
     
 
 if __name__=='__main__':
