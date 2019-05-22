@@ -300,29 +300,23 @@ class ContextWindow(object):
         sentence which results from existing ContextWindow. If existing
         ContextWindow include parts of several sentences, all of them will
         be added to the ContextWindow in question.
-        @param self: ContextWindow object to be enlarged
-        @return self: the same CW object with changed windowposition.start and windowposition.end
         """
         start_boundary = re.compile(r'[A-ZА-Я]\s[.?!]')
         end_boundary = re.compile(r'[.?!]\s[A-ZА-Я]')
         before_cw = self.wholestring[:self.windowposition.start+1]
         after_cw = self.wholestring[self.windowposition.end:]
-        start_result = re.findall(start_boundary, before_cw[::-1])
-        end_result = re.findall(end_boundary, after_cw)
-        #right sentence boundary
-        if end_result == []:
+        start_result = re.search(start_boundary, before_cw[::-1])
+        end_result = re.search(end_boundary, after_cw)
+        # right sentence boundary
+        if end_result == None:
             self.windowposition.end = len(self.wholestring)
         else:
-            pos = after_cw.find(end_result[0])
-            self.windowposition.end = self.windowposition.end + pos + 1
-        #left sentence boundary    
-        if start_result == []:
+            self.windowposition.end = self.windowposition.end + end_result.start() + 1
+        # left sentence boundary    
+        if start_result == None:
             self.windowposition.start = 0
         else:
-            pos = before_cw[::-1].find(start_result[0])
-            self.windowposition.start = len(before_cw) - pos - 1
-        return self
-
+            self.windowposition.start = len(before_cw) - start_result.start() - 1
     
 def main():
     indexing = indexer.Indexer("database")
@@ -332,22 +326,22 @@ def main():
     indexing.index_with_lines('text.txt')
     #os.remove('text.txt')
     file2 = open('text2.txt', 'w')
-    file2.write('На розоватом. Небе небе. Много облачков маленьких. J')
+    file2.write('На розоватом. Небе небе Много облачков маленьких. J')
     file2.close()
     indexing.index_with_lines('text2.txt')
     #os.remove('text2.txt')
     file3 = open('text3.txt', 'w')
-    file3.write('На голубом преголубом небе много облачков небе \n птичек \n звезд')
+    file3.write('На голубом преголубом небе много облачков небе. \n птичек \n звезд')
     file3.close()
     indexing.index_with_lines('text3.txt')
     #os.remove('text3.txt')
     indexing.closeDatabase()
     search = SearchEngine("database")
-    tokenquery = "облачков розовом небе"
+    tokenquery = "облачков"
     tokenquery2 = "Много"
     ##searchresult = dict(search.several_tokens_search(tokenquery2))  
     ##print(searchresult)
-    contextsearch = search.several_tokens_search_with_sentence_context(tokenquery2,0,1)
+    contextsearch = search.several_tokens_search_with_sentence_context(tokenquery, 0, 0)
     print(contextsearch)
     
 
