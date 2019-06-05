@@ -113,46 +113,26 @@ class SearchEngine(object):
         @param mybiglist: list in question
         @return mybigdict: resulted list with already united CWs (if there could be some)
         """
+        mybiglist.sort()
         i = 0
-        if (len(mybiglist)>1):
-            while (i < len(mybiglist)-1):
-                if(mybiglist[i].windowposition.doc==mybiglist[i+1].windowposition.doc):
-                    if (mybiglist[i].windowposition.line==mybiglist[i+1].windowposition.line):
-                        if ((mybiglist[i].windowposition.start < mybiglist[i+1].windowposition.end)
-                            and (mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start)):
-                            if str(mybiglist[i].wholestring) == str(mybiglist[i+1].wholestring):
-                                wholestring = mybiglist[i].wholestring
-                                mynewcw = ContextWindow(wholestring,
-                                    [mybiglist[i].tokenposition,mybiglist[i+1].tokenposition],
-                                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
-                                    mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
-                                mybiglist.pop(i+1)
-                                mybiglist.insert(i+1, mynewcw)
-                                mybiglist.pop(i)
-                            else:
-                                if type(mybiglist[i].tokenposition) == list:
-                                    rightedgecw = mybiglist[i].tokenposition[len(mybiglist[i].tokenposition)-1]
-                                    tab = len(mybiglist[i].tokenposition) * 7
-                                else:
-                                    rightedgecw = mybiglist[i].tokenposition
-                                    tab = 7                                
-                                wholestring = str(mybiglist[i].wholestring[:rightedgecw.wordend] +
-                                     mybiglist[i+1].wholestring[rightedgecw.wordend-tab:])
-                                newposition = indexer.Position_with_lines(mybiglist[i+1].tokenposition.wordbeg + tab,
-                                                        mybiglist[i+1].tokenposition.wordend + tab, mybiglist[i+1].tokenposition.line)
-                                mynewcw = ContextWindow(wholestring,
-                                    [mybiglist[i].tokenposition,newposition],
-                                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end + tab,
-                                    mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
-                                mybiglist.pop(i+1)
-                                mybiglist.insert(i+1, mynewcw)
-                                mybiglist.pop(i)
-                        else:
-                            i = i+1
-                    else:
-                        i = i+1
-                else:
-                    i = i+1
+        while (i < len(mybiglist)-1):
+            if (mybiglist[i].windowposition.doc == mybiglist[i+1].windowposition.doc
+                and mybiglist[i].windowposition.line == mybiglist[i+1].windowposition.line
+                and mybiglist[i].windowposition.start < mybiglist[i+1].windowposition.end
+                and mybiglist[i].windowposition.end > mybiglist[i+1].windowposition.start):
+                wholestring = mybiglist[i].wholestring
+                tokenspositions = []
+                for pos in mybiglist[i].tokenposition:
+                    tokenspositions.append(pos)
+                tokenspositions.append(mybiglist[i+1].tokenposition[0])
+                mynewcw = ContextWindow(wholestring, tokenspositions,
+                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end,
+                    mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
+                mybiglist.pop(i+1)
+                mybiglist.insert(i+1, mynewcw)
+                mybiglist.pop(i)
+            else:
+                i = i+1
         return mybiglist
 
     def several_tokens_search_with_customizable_context(self, tokenquerystring, leftcontext, rightcontext):
@@ -192,7 +172,7 @@ class SearchEngine(object):
     def highlighted_context_window_search(self, tokenquerystring, leftcontext, rightcontext):
         """
         This method search tokenquerystring in database and returns search result
-        as a dict with docs as keys and citations of customizable size with our query
+        as a dict with docs as keys and citations (sentences) 
         where query style is bold (marked with <B> tags)
         @param tokenquerystring: the sentence of tokens to be tokenized and
         processed by SearchEngine
@@ -202,27 +182,14 @@ class SearchEngine(object):
         to be added to the context window
         @return mycitationdict: dict with docs as keys and citations as values
         """
-        searchresult = self.several_tokens_search(tokenquerystring)
-        mybigdict = {}
-        mycitationdict = {}
-        #constructing a dictionary of separate CWs for each position
-        for doc in searchresult:
-            mybigdict[doc]=[]
-            for tokenposition in searchresult[doc]:
-                cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
-                                                        doc, leftcontext, rightcontext)
-                cw.get_context_window_bold()
-                mybigdict[doc].append(cw)
-        # windows intersection
-        for doc in mybigdict:
-            mybigdict[doc].sort()
-            mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
-            #print(doc, mybigdict[doc])  
-            mycitationlist = []
-            for cw in mybigdict[doc]:
-                mycitationlist.append(cw.wholestring[cw.windowposition.start:cw.windowposition.end])  
-            mycitationdict[doc] = mycitationlist
-        return mycitationdict
+        searchresult = self.several_tokens_search_with_sentence_context(tokenquerystring, leftcontext, rightcontext)
+        citationdict = {}
+        for doc in searchresult.keys():
+            citationlist = []
+            for cw in searchresult[doc]:
+                citationlist.append(cw.get_context_window_bold())
+            citationdict[doc] = citationlist
+        return citationdict
                 
 
 class WindowPosition(object):
@@ -360,8 +327,8 @@ class ContextWindow(object):
                 if i == rightcontext or i == len(tokenizerresult)-1:
                     rightend = tokenposition.wordbeg + rightend
                     break
-        mycontextwindow = cls(contextline, indexer.Position_with_lines(
-            tokenposition.wordbeg, tokenposition.wordend, tokenposition.line),
+        mycontextwindow = cls(contextline, [indexer.Position_with_lines(
+            tokenposition.wordbeg, tokenposition.wordend, tokenposition.line)],
                             WindowPosition(leftstart, rightend, lineno, doc))
         return mycontextwindow
 
@@ -392,13 +359,15 @@ class ContextWindow(object):
     def get_context_window_bold(self):
         """
         This method works with one CW and makes searched token in it bold with <B> tag
-        It is done by changing wholestring, position of the start and beginning of the CW.
-        Tokenposition now includes both left and right tags.
         """
-        self.wholestring = self.wholestring[:self.tokenposition.wordend] + '</B>' + self.wholestring[self.tokenposition.wordend:]
-        self.windowposition.end += 7
-        self.wholestring = self.wholestring[:self.tokenposition.wordbeg] + '<B>' + self.wholestring[self.tokenposition.wordbeg:]
-        self.tokenposition.wordend += 7
+        newstring = self.wholestring
+        i = len(self.tokenposition) - 1
+        while i >= 0:
+            newstring = newstring[:self.tokenposition[i].wordend] + '</B>' + newstring[self.tokenposition[i].wordend:]
+            newstring = newstring[:self.tokenposition[i].wordbeg] + '<B>' + newstring[self.tokenposition[i].wordbeg:]
+            i = i - 1
+        newstring = newstring[self.windowposition.start:(self.windowposition.end + 7 * len(self.tokenposition))]
+        return newstring
     
 def main():
     indexing = indexer.Indexer("database")
@@ -411,16 +380,15 @@ def main():
     file2.close()
     indexing.index_with_lines('text2.txt')
     file3 = open('text3.txt', 'w')
-    file3.write('На голубом преголубом небе небе много облачков небе. \n птичек много облачков \n звезд')
+    file3.write('На голубом преголубом небе небе много облачков много облачков небе. \n птичек много облачков \n звезд')
     file3.close()
     indexing.index_with_lines('text3.txt')
     indexing.closeDatabase()
     search = SearchEngine("database")
     tokenquery = "небе"
     tokenquery2 = "много облачков"
-##    searchresult = search.several_tokens_search_with_sentence_context(tokenquery, 2, 2) 
-##    print(searchresult)
-    contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 4)
+    #searchresult = search.several_tokens_search_with_customizable_context(tokenquery2, 2, 2) 
+    contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 3)
     contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1, 1)
     print(contextsearch1)
     print(contextsearch2)
