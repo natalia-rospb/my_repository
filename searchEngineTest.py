@@ -334,6 +334,7 @@ class ContextWindowTest(unittest.TestCase):
         testfile.write("There are only fluffy kittens! Only kittens")
         testfile.close()
         self.testindexer.index_with_lines("text.txt")
+        
         testsearch = search_engine.SearchEngine('database')
         
         windowsdict = testsearch.several_tokens_search_with_sentence_context("only", 0, 0)
@@ -352,6 +353,31 @@ class ContextWindowTest(unittest.TestCase):
         expectedwindowresult = {"text.txt": [search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
                                     [indexer.Position_with_lines(22, 29, 0), indexer.Position_with_lines(36, 43, 0)],
                                      search_engine.WindowPosition(0, 43, 0, "text.txt"))]}
+        self.assertEqual(windowsdict, expectedwindowresult)
+
+    def test_context_window_highlighted_search(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only fluffy kittens! Only kittens")
+        testfile.close()
+        self.testindexer.index_with_lines("text.txt")
+        testfile2 = open("text2.txt", 'w')
+        testfile2.write("only kittens and puppies...")
+        testfile2.close()
+        self.testindexer.index_with_lines("text2.txt")
+        testsearch = search_engine.SearchEngine('database')
+        
+        windowsdict = testsearch.highlighted_context_window_search("only", 1, 1)
+        expectedwindowresult = {"text.txt": ["are <B>only</B> fluffy"],
+                                "text2.txt": ["<B>only</B> kittens"]}
+        self.assertEqual(windowsdict, expectedwindowresult)
+            
+        windowsdict = testsearch.highlighted_context_window_search("only fluffy", 3, 3)
+        expectedwindowresult = {"text.txt": ["There are <B>only</B> <B>fluffy</B> kittens! Only kittens"]}
+        self.assertEqual(windowsdict, expectedwindowresult)
+            
+        windowsdict = testsearch.highlighted_context_window_search("kittens", 1, 1)
+        expectedwindowresult = {"text.txt": ["fluffy <B>kittens</B>! Only <B>kittens</B>"],
+                                "text2.txt": ["only <B>kittens</B> and"]}
         self.assertEqual(windowsdict, expectedwindowresult)
 
     def tearDown(self):

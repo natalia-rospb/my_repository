@@ -113,7 +113,6 @@ class SearchEngine(object):
         @param mybiglist: list in question
         @return mybigdict: resulted list with already united CWs (if there could be some)
         """
-        #mybiglist.sort()
         i = 0
         if (len(mybiglist)>1):
             while (i < len(mybiglist)-1):
@@ -131,19 +130,29 @@ class SearchEngine(object):
                                 mybiglist.insert(i+1, mynewcw)
                                 mybiglist.pop(i)
                             else:
-                                wholestring = str(mybiglist[i].wholestring[:mybiglist[i].tokenposition.wordend] +
-                                     mybiglist[i+1].wholestring[mybiglist[i].tokenposition.wordend-7:])
-                                newposition = indexer.Position_with_lines(mybiglist[i+1].tokenposition.wordbeg + 7,
-                                                        mybiglist[i+1].tokenposition.wordend + 7, mybiglist[i+1].tokenposition.line)
+                                if type(mybiglist[i].tokenposition) == list:
+                                    rightedgecw = mybiglist[i].tokenposition[len(mybiglist[i].tokenposition)-1]
+                                    tab = len(mybiglist[i].tokenposition) * 7
+                                else:
+                                    rightedgecw = mybiglist[i].tokenposition
+                                    tab = 7                                
+                                wholestring = str(mybiglist[i].wholestring[:rightedgecw.wordend] +
+                                     mybiglist[i+1].wholestring[rightedgecw.wordend-tab:])
+                                newposition = indexer.Position_with_lines(mybiglist[i+1].tokenposition.wordbeg + tab,
+                                                        mybiglist[i+1].tokenposition.wordend + tab, mybiglist[i+1].tokenposition.line)
                                 mynewcw = ContextWindow(wholestring,
                                     [mybiglist[i].tokenposition,newposition],
-                                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end + 7,
+                                    WindowPosition(mybiglist[i].windowposition.start, mybiglist[i+1].windowposition.end + tab,
                                     mybiglist[i+1].windowposition.line, mybiglist[i+1].windowposition.doc))
                                 mybiglist.pop(i+1)
                                 mybiglist.insert(i+1, mynewcw)
                                 mybiglist.pop(i)
                         else:
                             i = i+1
+                    else:
+                        i = i+1
+                else:
+                    i = i+1
         return mybiglist
 
     def several_tokens_search_with_customizable_context(self, tokenquerystring, leftcontext, rightcontext):
@@ -181,6 +190,18 @@ class SearchEngine(object):
         return contextsearch
 
     def highlighted_context_window_search(self, tokenquerystring, leftcontext, rightcontext):
+        """
+        This method search tokenquerystring in database and returns search result
+        as a dict with docs as keys and citations of customizable size with our query
+        where query style is bold (marked with <B> tags)
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return mycitationdict: dict with docs as keys and citations as values
+        """
         searchresult = self.several_tokens_search(tokenquerystring)
         mybigdict = {}
         mycitationdict = {}
@@ -194,6 +215,7 @@ class SearchEngine(object):
                 mybigdict[doc].append(cw)
         # windows intersection
         for doc in mybigdict:
+            mybigdict[doc].sort()
             mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
             #print(doc, mybigdict[doc])  
             mycitationlist = []
@@ -272,8 +294,11 @@ class ContextWindow(object):
         """
         This method was necessary to arrange windows sorting 
         """
-        return ((self.windowposition.start < obj.windowposition.start) and
-                (self.windowposition.doc == obj.windowposition.doc))
+        if self.windowposition.doc == obj.windowposition.doc:
+            if self.windowposition.line == obj.windowposition.line:
+                return self.windowposition.start < obj.windowposition.start
+            else:
+                return self.windowposition.line < obj.windowposition.line
     
     @classmethod
     def get_context_window_one_position_one_file(cls, tokenposition, doc, leftcontext, rightcontext):
@@ -365,6 +390,11 @@ class ContextWindow(object):
             self.windowposition.start = len(before_cw) - start_result.start() - 1
 
     def get_context_window_bold(self):
+        """
+        This method works with one CW and makes searched token in it bold with <B> tag
+        It is done by changing wholestring, position of the start and beginning of the CW.
+        Tokenposition now includes both left and right tags.
+        """
         self.wholestring = self.wholestring[:self.tokenposition.wordend] + '</B>' + self.wholestring[self.tokenposition.wordend:]
         self.windowposition.end += 7
         self.wholestring = self.wholestring[:self.tokenposition.wordbeg] + '<B>' + self.wholestring[self.tokenposition.wordbeg:]
@@ -381,7 +411,7 @@ def main():
     file2.close()
     indexing.index_with_lines('text2.txt')
     file3 = open('text3.txt', 'w')
-    file3.write('На голубом преголубом небе много облачков небе. \n птичек \n звезд')
+    file3.write('На голубом преголубом небе небе много облачков небе. \n птичек много облачков \n звезд')
     file3.close()
     indexing.index_with_lines('text3.txt')
     indexing.closeDatabase()
@@ -390,8 +420,8 @@ def main():
     tokenquery2 = "много облачков"
 ##    searchresult = search.several_tokens_search_with_sentence_context(tokenquery, 2, 2) 
 ##    print(searchresult)
-    contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 2)
-    contextsearch2 = search.highlighted_context_window_search(tokenquery2, 2, 2)
+    contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 4)
+    contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1,1)
     print(contextsearch1)
     print(contextsearch2)
     search.closeDatabase()
