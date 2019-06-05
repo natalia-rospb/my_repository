@@ -362,7 +362,7 @@ class ContextWindow(object):
                     break
         mycontextwindow = cls(contextline, indexer.Position_with_lines(
             tokenposition.wordbeg, tokenposition.wordend, tokenposition.line),
-                            WindowPosition(leftstart,rightend,lineno,doc))
+                            WindowPosition(leftstart, rightend, lineno, doc))
         return mycontextwindow
 
     def get_sentence_context_window(self):
@@ -421,7 +421,7 @@ def main():
 ##    searchresult = search.several_tokens_search_with_sentence_context(tokenquery, 2, 2) 
 ##    print(searchresult)
     contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 4)
-    contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1,1)
+    contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1, 1)
     print(contextsearch1)
     print(contextsearch2)
     search.closeDatabase()
