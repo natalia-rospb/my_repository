@@ -147,8 +147,20 @@ class SearchEngine(object):
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
         searchresult = self.several_tokens_search(tokenquerystring)
+        t = Tokenizator()
+        tokenizerresult = list(t.generate_alpha_and_digits(tokenquerystring))
         contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
-        return contextwindowsresult
+        contextwindowsresult2 = {}
+        for doc in contextwindowsresult.keys():
+            contextwindowsresult2[doc] = contextwindowsresult[doc]
+            i = len(contextwindowsresult[doc])-1
+            while i > -1:
+                if len(contextwindowsresult[doc][i].tokenposition) < len(tokenizerresult):
+                    del contextwindowsresult[doc][i]
+                i = i - 1
+            if contextwindowsresult[doc] == []:
+                contextwindowsresult2.pop(doc)
+        return contextwindowsresult2
 
     def several_tokens_search_with_sentence_context(self, tokenquerystring, leftcontext, rightcontext):
         """
@@ -370,29 +382,31 @@ class ContextWindow(object):
         return newstring
     
 def main():
-    indexing = indexer.Indexer("database")
-    file = open('text.txt', 'w')
-    file.write('На небе. Много. Фиолетовых облачков')
-    file.close()
-    indexing.index_with_lines('text.txt')
-    file2 = open('text2.txt', 'w')
-    file2.write('На розоватом. Небе небе много облачков маленьких. J')
-    file2.close()
-    indexing.index_with_lines('text2.txt')
-    file3 = open('text3.txt', 'w')
-    file3.write('На голубом преголубом небе небе много облачков много облачков небе. \n птичек много облачков \n звезд')
-    file3.close()
-    indexing.index_with_lines('text3.txt')
-    indexing.closeDatabase()
-    search = SearchEngine("database")
-    tokenquery = "небе"
-    tokenquery2 = "много облачков"
-    #searchresult = search.several_tokens_search_with_customizable_context(tokenquery2, 2, 2) 
-    contextsearch1 = search.highlighted_context_window_search(tokenquery, 2, 3)
-    contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1, 1)
+    #indexing = indexer.Indexer("vim")
+##    file = open('text.txt', 'w')
+##    file.write('На небе. Много. Фиолетовых облачков')
+##    file.close()
+    #indexing.index_with_lines('tolstoy4.txt')
+##    file2 = open('text2.txt', 'w')
+##    file2.write('На розоватом. Небе небе много облачков маленьких. J')
+##    file2.close()
+##    indexing.index_with_lines('text2.txt')
+##    file3 = open('text3.txt', 'w')
+##    file3.write('На голубом преголубом небе небе много облачков много облачков небе. \n птичек много облачков \n звезд')
+##    file3.close()
+##    indexing.index_with_lines('text3.txt')
+    #indexing.closeDatabase()
+    search = SearchEngine("vim")
+##    tokenquery = "небе"
+##    tokenquery2 = "много облачков"
+    #searchresult = search.several_tokens_search_with_customizable_context(tokenquery2, 2, 2)
+    
+    contextsearch1 = search.several_tokens_search_with_customizable_context('князь Андрей',2,2)
+    #contextsearch1 = search.several_tokens_search('князь Андрей')
+    #contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1, 1)
     print(contextsearch1)
-    print(contextsearch2)
-    search.closeDatabase()
+    #print(contextsearch2)
+    #search.closeDatabase()
     
 
 if __name__=='__main__':
