@@ -35,8 +35,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         form = cgi.FieldStorage(fp=self.rfile, headers=self.headers,
                         environ={'REQUEST_METHOD': 'POST'})
         tokenquery = str(form.getvalue("query"))
-        search = SearchEngine("vim")
-        searchresult = search.highlighted_context_window_search(tokenquery, 1, 1)
+        searchresult = self.server.search_engine.highlighted_context_window_search(tokenquery, 1, 1)
         print(searchresult)
         self.send_response(200)
         self.send_header("Content-type", "text/html; charset=utf-8")
@@ -66,6 +65,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         
 def main():
     server = HTTPServer(('', 80), RequestHandler)
+    server.search_engine = SearchEngine("vim")
     server.serve_forever()
 
 if __name__ == "__main__":

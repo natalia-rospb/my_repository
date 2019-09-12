@@ -97,10 +97,15 @@ class SearchEngine(object):
         #constructing a dictionary of separate CWs for each position
         for doc in searchresult:
             mybigdict[doc]=[]
-            for tokenposition in searchresult[doc]:
-                cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
-                                                        doc, leftcontext, rightcontext)
-                mybigdict[doc].append(cw)
+            currentfile = open(doc)
+            for i, line in enumerate(currentfile):
+                for tokenposition in iter(searchresult[doc]):
+                    if i == tokenposition.line:
+                        cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
+                                                        doc, line, leftcontext, rightcontext)
+                        mybigdict[doc].append(cw)
+                        next
+                next
         # windows intersection
         for doc in mybigdict:
             mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
@@ -280,7 +285,7 @@ class ContextWindow(object):
                 return self.windowposition.line < obj.windowposition.line
     
     @classmethod
-    def get_context_window_one_position_one_file(cls, tokenposition, doc, leftcontext, rightcontext):
+    def get_context_window_one_position_one_file(cls, tokenposition, doc, line, leftcontext, rightcontext):
         """
         This method can construct a context window of customizable size.
         @param tokenposition: position of the token
@@ -294,18 +299,11 @@ class ContextWindow(object):
         """
         tokenizerresult = []
         t = Tokenizator()
-        i = 0
         lineno = tokenposition.line
-        currentfile = open(doc)
-        for i, line in enumerate(currentfile):
-            if i == lineno:
-                contextline = line
-                break
-        currentfile.close()
         i = 0
         # left context
         mylist = []
-        myleftline = contextline[:tokenposition.wordend]
+        myleftline = line[:tokenposition.wordend]
         myreversedleftline = myleftline[::-1]
         tokenizerresult = list(t.generate_alpha_and_digits(myreversedleftline))
         for i, token in enumerate(tokenizerresult):
@@ -326,7 +324,7 @@ class ContextWindow(object):
         for i,token in enumerate(mylist):
             mylist[i] = token[::-1]
         # right context
-        myrightline = contextline[tokenposition.wordbeg:]
+        myrightline = line[tokenposition.wordbeg:]
         tokenizerresult = list(t.generate_alpha_and_digits(myrightline))
         for i, token in enumerate(tokenizerresult):
             if i==0:
@@ -339,7 +337,7 @@ class ContextWindow(object):
                 if i == rightcontext or i == len(tokenizerresult)-1:
                     rightend = tokenposition.wordbeg + rightend
                     break
-        mycontextwindow = cls(contextline, [indexer.Position_with_lines(
+        mycontextwindow = cls(line, [indexer.Position_with_lines(
             tokenposition.wordbeg, tokenposition.wordend, tokenposition.line)],
                             WindowPosition(leftstart, rightend, lineno, doc))
         return mycontextwindow
