@@ -79,6 +79,7 @@ class SearchEngine(object):
             for token in tokenizerresult:
                 resultedsearchdict.setdefault(file,[]).extend(
                     self.database[token.word][file])
+            resultedsearchdict[file].sort()
         return resultedsearchdict
 
     @staticmethod
@@ -98,14 +99,26 @@ class SearchEngine(object):
         for doc in searchresult:
             mybigdict[doc]=[]
             currentfile = open(doc)
-            for i, line in enumerate(currentfile):
-                for tokenposition in iter(searchresult[doc]):
-                    if i == tokenposition.line:
-                        cw = ContextWindow.get_context_window_one_position_one_file(tokenposition,
+            itrline = iter(enumerate(currentfile))
+            itrpos = iter(searchresult[doc])
+            try:
+                lineno, line = next(itrline)
+                pos = next(itrpos)
+            except StopIteration:
+                continue
+            while True:
+                try:
+                    if lineno == pos.line:
+##                            print(pos)
+##                            print(line)
+                        cw = ContextWindow.get_context_window_one_position_one_file(pos,
                                                         doc, line, leftcontext, rightcontext)
                         mybigdict[doc].append(cw)
-                        next
-                next
+                        pos = next(itrpos)
+                    else:
+                        lineno, line = next(itrline)
+                except StopIteration:
+                    break
         # windows intersection
         for doc in mybigdict:
             mybigdict[doc] = SearchEngine.check_and_unite_context_windows(mybigdict[doc])
@@ -167,7 +180,7 @@ class SearchEngine(object):
                 contextwindowsresult2.pop(doc)
         return contextwindowsresult2
 
-    def several_tokens_search_with_sentence_context(self, tokenquerystring, leftcontext, rightcontext):
+    def several_tokens_search_with_sentence_context(self, tokenquerystring):
         """
         This method enlarges CWs until sentence boundaries on both sides or, if there are no boundary, until
         the position of the start or the end of the line.
@@ -179,14 +192,14 @@ class SearchEngine(object):
         to be added to the context window
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
-        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring, leftcontext, rightcontext)
+        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring, 1, 1)
         for doc in contextsearch.keys():
             for item in contextsearch[doc]:
                 item.get_sentence_context_window()
             contextsearch[doc] = SearchEngine.check_and_unite_context_windows(contextsearch[doc])
         return contextsearch
 
-    def highlighted_context_window_search(self, tokenquerystring, leftcontext, rightcontext):
+    def highlighted_context_window_search(self, tokenquerystring):
         """
         This method search tokenquerystring in database and returns search result
         as a dict with docs as keys and citations (sentences) 
@@ -199,7 +212,7 @@ class SearchEngine(object):
         to be added to the context window
         @return mycitationdict: dict with docs as keys and citations as values
         """
-        searchresult = self.several_tokens_search_with_sentence_context(tokenquerystring, leftcontext, rightcontext)
+        searchresult = self.several_tokens_search_with_sentence_context(tokenquerystring)
         citationdict = {}
         for doc in searchresult.keys():
             citationlist = []
@@ -380,11 +393,10 @@ class ContextWindow(object):
         return newstring
     
 def main():
-    #indexing = indexer.Indexer("vim")
+##    indexing = indexer.Indexer("database")
 ##    file = open('text.txt', 'w')
 ##    file.write('На небе. Много. Фиолетовых облачков')
 ##    file.close()
-    #indexing.index_with_lines('tolstoy4.txt')
 ##    file2 = open('text2.txt', 'w')
 ##    file2.write('На розоватом. Небе небе много облачков маленьких. J')
 ##    file2.close()
@@ -393,18 +405,28 @@ def main():
 ##    file3.write('На голубом преголубом небе небе много облачков много облачков небе. \n птичек много облачков \n звезд')
 ##    file3.close()
 ##    indexing.index_with_lines('text3.txt')
-    #indexing.closeDatabase()
+##    indexing.closeDatabase()
     search = SearchEngine("vim")
 ##    tokenquery = "небе"
 ##    tokenquery2 = "много облачков"
-    #searchresult = search.several_tokens_search_with_customizable_context(tokenquery2, 2, 2)
+##    searchresult = search.highlighted_context_window_search(tokenquery2)
     
-    contextsearch1 = search.several_tokens_search_with_customizable_context('князь Андрей',2,2)
+    indexing = indexer.Indexer("vim")
+    indexing.index_with_lines('tolstoy1.txt')
+    print('1')
+    indexing.index_with_lines('tolstoy2.txt')
+    print('2')
+    indexing.index_with_lines('tolstoy3.txt')
+    print('3')
+    indexing.index_with_lines('tolstoy4.txt')
+    print('4')
+    indexing.closeDatabase()
+##    contextsearch1 = search.highlighted_context_window_search('князь Андрей')
     #contextsearch1 = search.several_tokens_search('князь Андрей')
-    #contextsearch2 = search.highlighted_context_window_search(tokenquery2, 1, 1)
-    print(contextsearch1)
-    #print(contextsearch2)
-    #search.closeDatabase()
+    #contextsearch2 = search.highlighted_context_window_search(tokenquery2)
+##    print(searchresult)
+##    print(contextsearch1)
+##    search.closeDatabase()
     
 
 if __name__=='__main__':

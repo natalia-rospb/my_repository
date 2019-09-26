@@ -1,8 +1,10 @@
 from tokenizer_natashka_final import Tokenizator
 import shelve
 import os
+from functools import total_ordering
 
 
+@total_ordering 
 class Position(object):
     """
     This class keeps position of the beginning of the token and that
@@ -25,6 +27,10 @@ class Position(object):
         @return: True in case of equality, False in the opposite case
         """
         return (self.wordbeg == obj.wordbeg and self.wordend == obj.wordend)
+
+    def __lt__(self, obj):
+        "Comparison"
+        return self.wordbeg < obj.wordbeg
         
     def __repr__(self):
         """
@@ -32,8 +38,9 @@ class Position(object):
         way. Example of how does it look like: (8; 12)
         """
         return ('(' + str(self.wordbeg) + ';' + ' ' + str(self.wordend) + ')')
-    
 
+    
+@total_ordering 
 class Position_with_lines(object):
     """
     This class keeps position of the beginning of the token, that
@@ -61,6 +68,13 @@ class Position_with_lines(object):
         """
         return (self.wordbeg == obj.wordbeg and self.wordend == obj.wordend
                 and self.line == obj.line)
+    
+    def __lt__(self, obj):
+        "Comparison"
+        if self.line == obj.line:
+            return self.wordbeg < obj.wordbeg
+        else:
+            return self.line < obj.line
 
     def __repr__(self):
         """
@@ -141,24 +155,23 @@ class Indexer(object):
         
 def main():
     indexer = Indexer('database')
-    #file = open('text.txt', 'w')
-    #file.write('это мое предложение')
-    #file.close()
-    #indexer.index('text.txt')
-    #os.remove('text.txt')
-    #file2 = open('text2.txt', 'w')
-    #file2.write('this is a sentence \r\nto be be indexed')
-    #file2.close()
+    file = open('text.txt', 'w')
+    file.write('это мое предложение')
+    file.close()
+    indexer.index('text.txt')
+    os.remove('text.txt')
+    file2 = open('text2.txt', 'w')
+    file2.write('this is a sentence \r\nto be be indexed')
+    file2.close()
     indexer.index_with_lines('Плутон.txt')
-    #os.remove('text2.txt')
+    os.remove('text2.txt')
 
     #indexer2.index_with_lines('tolstoy1.txt')
     #indexer2.index_with_lines('tolstoy2.txt')
     #indexer2.index_with_lines('tolstoy3.txt')
     #indexer2.index_with_lines('tolstoy4.txt')
-    #indexer.closeDatabase()
+    indexer.closeDatabase()
     #print(dict(indexer.database.get("небо", {})))
-    print(dict(shelve.open('database')))
     #indexer.closeDatabase()
     
 if __name__=='__main__':
