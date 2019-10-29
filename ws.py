@@ -48,8 +48,12 @@ class RequestHandler(BaseHTTPRequestHandler):
         if not offset:
             offset = 0
         else: offset = int(offset)
-        
-        searchresult = self.server.search_engine.highlighted_context_window_search(tokenquery)
+
+        docslimoff = [0] * limit
+        for i in range(limit):
+                docslimoff[i] = [3,0]
+        searchresult = self.server.search_engine.lim_off_context_window_search(tokenquery,
+                                                    limit, 0, docslimoff)
         self.send_response(200)
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
@@ -71,49 +75,39 @@ class RequestHandler(BaseHTTPRequestHandler):
                             """ % (tokenquery, limit, offset), encoding="utf-8"))
             # limit - how many files to show on the page at once
             # offset - the number of an element from which to show citations
-            i = 0
             docnumber = 0
             sortedkeys = list(searchresult.keys())
             sortedkeys.sort()
             for doc in sortedkeys:
-
-                # realisation of the offset for documents
-                if docnumber >= offset:
-
-                    # getting doclimit and docoffset for a particular document
-                    doclimit = form.getvalue("doc%dlimit" % docnumber)
-                    print("doc%dlimit" % docnumber)
-                    print(doclimit)
-                    if not doclimit:
-                        doclimit = 5
-                    else: doclimit = int(doclimit)
-                    docoffset = form.getvalue("doc%doffset" % docnumber)
-                    print("doc%doffset" % docnumber)
-                    print(docoffset)
-                    if not docoffset:
-                        docoffset = 0
-                    else: docoffset = int(docoffset)
-
-                    # realisation of the limit for documents
-                    if i < limit:
-                        self.wfile.write(bytes("<li><p>%s</p></li><ul>" % doc, encoding="UTF-8"))
-                        cwnumber = 0
-                        y = 0
-                        for cw in searchresult[doc]:
-                            if cwnumber >= docoffset:
-                                # realisation of the limit for citations
-                                if y < doclimit:
-                                    self.wfile.write(bytes("<li><p>%s</p></li>" % cw, encoding="UTF-8"))
-                                y += 1
-                            cwnumber += 1
-                        self.wfile.write(bytes("</ul>", encoding="utf-8"))
-                    i += 1
-                    self.wfile.write(bytes("""
-                                <input type="doc%dlimit" name="doc%dlimit" placeholder = "cit.limit in the doc" value = "%d">
-                                <input type="doc%doffset" name="doc%doffset" placeholder = "cit.offset in the doc" value = "%d">
-                                """ % (docnumber, docnumber, doclimit, docnumber, docnumber, docoffset), encoding="utf-8"))
+                
+                # getting doclimit and docoffset for a particular document
+                doclimit = form.getvalue("doc%dlimit" % docnumber)
+                if not doclimit:
+                    doclimit = 3
+                else: doclimit = int(doclimit)
+                docoffset = form.getvalue("doc%doffset" % docnumber)
+                if not docoffset:
+                    docoffset = 0
+                else: docoffset = int(docoffset)
+                docslimoff[docnumber] = [doclimit, docoffset]
                 docnumber += 1
-            self.wfile.write(bytes(""" </form>
+            ##docslimoff = docslimoff[offset:]
+            searchresultlimoff = self.server.search_engine.lim_off_context_window_search(tokenquery,
+                                                limit, offset, docslimoff)
+            sortedkeyslimoff = list(searchresultlimoff.keys())
+            sortedkeyslimoff.sort()
+            for x, doc in enumerate(sortedkeyslimoff):
+                # x = docnumber; docslimoff[x][0] = doclimit; docslimoff[x][1] = docoffset
+                self.wfile.write(bytes("<li><p>%s</p></li><ul>" % doc, encoding="UTF-8"))
+                for cw in searchresultlimoff[doc]:
+                    self.wfile.write(bytes("<li><p>%s</p></li>" % cw, encoding="UTF-8"))
+                self.wfile.write(bytes("</ul>", encoding="utf-8"))
+                self.wfile.write(bytes("""
+                    <input type="doc%dlimit" name="doc%dlimit" placeholder = "cit.limit in the doc" value = "%d">
+                    <input type="doc%doffset" name="doc%doffset" placeholder = "cit.offset in the doc" value = "%d">
+                        """ % (x, x, docslimoff[x][0], x, x, docslimoff[x][1]), encoding="utf-8"))
+                
+            self.wfile.write(bytes("""</form>
                             </ol>
                         </body>
                     </html>

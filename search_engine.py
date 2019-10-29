@@ -4,7 +4,18 @@ import shelve
 from tokenizer_natashka_final import Tokenizator
 import linecache
 import re
+import time
 
+
+class Profiler(object):
+    """
+    Shows how long does it take for this program to work.
+    """
+    def __enter__(self):
+        self._startTime = time.time()
+
+    def __exit__(self, type, value, traceback):
+        print("Elapsed time: {:.3f} sec".format(time.time() - self._startTime))
 
 class SearchEngine(object):
     """
@@ -97,7 +108,7 @@ class SearchEngine(object):
         mybigdict = {}
         #constructing a dictionary of separate CWs for each position
         for doc in searchresult:
-            mybigdict[doc]=[]
+            mybigdict[doc] = []
             currentfile = open(doc)
             itrline = iter(enumerate(currentfile))
             itrpos = iter(searchresult[doc])
@@ -109,8 +120,6 @@ class SearchEngine(object):
             while True:
                 try:
                     if lineno == pos.line:
-##                            print(pos)
-##                            print(line)
                         cw = ContextWindow.get_context_window_one_position_one_file(pos,
                                                         doc, line, leftcontext, rightcontext)
                         mybigdict[doc].append(cw)
@@ -118,6 +127,7 @@ class SearchEngine(object):
                     else:
                         lineno, line = next(itrline)
                 except StopIteration:
+                    currentfile.close()
                     break
         # windows intersection
         for doc in mybigdict:
@@ -172,10 +182,6 @@ class SearchEngine(object):
         for doc in contextwindowsresult.keys():
             contextwindowsresult2[doc] = contextwindowsresult[doc]
             i = len(contextwindowsresult[doc])-1
-            while i > -1:
-                if len(contextwindowsresult[doc][i].tokenposition) < len(tokenizerresult):
-                    del contextwindowsresult[doc][i]
-                i = i - 1
             if contextwindowsresult[doc] == []:
                 contextwindowsresult2.pop(doc)
         return contextwindowsresult2
@@ -192,7 +198,7 @@ class SearchEngine(object):
         to be added to the context window
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
-        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring, 1, 1)
+        contextsearch = self.several_tokens_search_with_customizable_context(tokenquerystring, 1,1)
         for doc in contextsearch.keys():
             for item in contextsearch[doc]:
                 item.get_sentence_context_window()
@@ -220,8 +226,44 @@ class SearchEngine(object):
                 citationlist.append(cw.get_context_window_bold())
             citationdict[doc] = citationlist
         return citationdict
-                
 
+    def lim_off_context_window_search(self, tokenquerystring, limit, offset, docslimoff):
+        """
+        This method creates an output from searchresult accordingly to the limit and
+        offset requirements given on the browser page
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param limit: how many files to show on the page at once
+        @param offset: the number of an element from which to show citations
+        @param docslimoff: list of pairs [doclimit, docoffset] for each doc in the output
+        """
+        searchresult = self.highlighted_context_window_search(tokenquerystring)
+        citationdict = {}
+        sortedkeys = list(searchresult.keys())
+        sortedkeys.sort()
+        i = 0 # number of docs on the page
+        docnumber = 0
+        for doc in sortedkeys:
+            citationlist = []
+            # realisation of the offset for documents
+            if docnumber >= offset:
+                if i < limit:
+                    cwnumber = 0
+                    y = 0 # number of citations 
+                    for cw in searchresult[doc]:
+                        if cwnumber >= docslimoff[docnumber-offset][1]: # checking docoffset
+                            # realisation of the limit for citations
+                            if y < docslimoff[docnumber-offset][0]: # checking doclimit
+                                citationlist.append(cw)
+                            y += 1
+                        cwnumber += 1
+                i += 1
+            docnumber += 1
+            if len(citationlist) > 0:
+                citationdict[doc] = citationlist
+        return citationdict
+        
+                
 class WindowPosition(object):
     
     def __init__(self, start, end, line, doc):
@@ -364,15 +406,15 @@ class ContextWindow(object):
         """
         start_boundary = re.compile(r'[A-ZА-Я]\s[.?!]')
         end_boundary = re.compile(r'[.?!]\s[A-ZА-Я]')
-        before_cw = self.wholestring[:self.windowposition.start+1]
-        after_cw = self.wholestring[self.windowposition.end:]
+        before_cw = self.wholestring[:self.tokenposition[0].wordbeg+1]
+        after_cw = self.wholestring[self.tokenposition[len(self.tokenposition)-1].wordend:]
         start_result = re.search(start_boundary, before_cw[::-1])
         end_result = re.search(end_boundary, after_cw)
         # right sentence boundary
         if end_result == None:
             self.windowposition.end = len(self.wholestring)
         else:
-            self.windowposition.end = self.windowposition.end + end_result.start() + 1
+            self.windowposition.end = self.tokenposition[len(self.tokenposition)-1].wordend + end_result.start() + 1
         # left sentence boundary    
         if start_result == None:
             self.windowposition.start = 0
@@ -410,24 +452,12 @@ def main():
 ##    tokenquery = "небе"
 ##    tokenquery2 = "много облачков"
 ##    searchresult = search.highlighted_context_window_search(tokenquery2)
-    
-    indexing = indexer.Indexer("vim")
-    indexing.index_with_lines('tolstoy1.txt')
-    print('1')
-    indexing.index_with_lines('tolstoy2.txt')
-    print('2')
-    indexing.index_with_lines('tolstoy3.txt')
-    print('3')
-    indexing.index_with_lines('tolstoy4.txt')
-    print('4')
-    indexing.closeDatabase()
-##    contextsearch1 = search.highlighted_context_window_search('князь Андрей')
-    #contextsearch1 = search.several_tokens_search('князь Андрей')
-    #contextsearch2 = search.highlighted_context_window_search(tokenquery2)
-##    print(searchresult)
-##    print(contextsearch1)
+
+    contextsearch1 = search.lim_off_context_window_search('князь Андрей', 4, 2, [[5,2],[1,6],[8,2],[2,0]])
+    print(contextsearch1)
 ##    search.closeDatabase()
     
 
 if __name__=='__main__':
-    main()
+    with Profiler() as p:
+        main()

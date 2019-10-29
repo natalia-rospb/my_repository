@@ -223,9 +223,9 @@ class ContextWindowTest(unittest.TestCase):
         self.testindexer.index_with_lines("text2.txt")
         testsearch = search_engine.SearchEngine('database')
         window1 = search_engine.ContextWindow.get_context_window_one_position_one_file(indexer.Position_with_lines(0, 4, 0),
-                                                                                        "text2.txt", 2, 1)
+                                                                            "text2.txt", "only...", 2, 1)
         window2 = search_engine.ContextWindow.get_context_window_one_position_one_file(indexer.Position_with_lines(10, 14, 0),
-                                                                                       "text.txt", 2, 1)
+                                                                            "text.txt", "There are only kittens!", 2, 1)
         expectedwindow1 = search_engine.ContextWindow("only",
                         [indexer.Position_with_lines(0, 4, 0)],
                         search_engine.WindowPosition(0, 4, 0, "text2.txt"))
@@ -251,7 +251,12 @@ class ContextWindowTest(unittest.TestCase):
         testsearch = search_engine.SearchEngine('database')
         # context '0,0'
         windowsdict = testsearch.several_tokens_search_with_customizable_context("only kittens", 0, 0)
-        expectedwindowresult = {}
+        expectedwindowresult = {'text.txt': [search_engine.ContextWindow("There are only fluffy kittens!",
+                                        [indexer.Position_with_lines(10, 14, 0)],
+                                        search_engine.WindowPosition(10, 14, 0, "text.txt")),
+                                            search_engine.ContextWindow("There are only fluffy kittens!",
+                                        [indexer.Position_with_lines(22, 29, 0)],
+                                        search_engine.WindowPosition(22, 29, 0, "text.txt"))]}
         self.assertEqual(expectedwindowresult, windowsdict)
 
     def test_context_window_search_several_tokens_several_files_1_1(self):
@@ -322,19 +327,19 @@ class ContextWindowTest(unittest.TestCase):
         
         testsearch = search_engine.SearchEngine('database')
         
-        windowsdict = testsearch.several_tokens_search_with_sentence_context("only", 0, 0)
+        windowsdict = testsearch.several_tokens_search_with_sentence_context("only")
         expectedwindowresult = {"text.txt": [search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
                                     [indexer.Position_with_lines(10, 14, 0)],
                                      search_engine.WindowPosition(0, 30, 0, "text.txt"))]}
         self.assertEqual(windowsdict, expectedwindowresult)
             
-        windowsdict = testsearch.several_tokens_search_with_sentence_context("only fluffy", 3, 3)
-        expectedwindowresult = {"text.txt": [search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
+        windowsdict = testsearch.several_tokens_search_with_sentence_context("only fluffy")
+        expectedwindowresult = {"text.txt": [search_engine.ContextWindow("There are only fluffy kittens!",
                                     [indexer.Position_with_lines(10, 14, 0), indexer.Position_with_lines(15, 21, 0)],
-                                     search_engine.WindowPosition(0, 43, 0, "text.txt"))]}
+                                     search_engine.WindowPosition(0, 30, 0, "text.txt"))]}
         self.assertEqual(windowsdict, expectedwindowresult)
             
-        windowsdict = testsearch.several_tokens_search_with_sentence_context("kittens", 1, 1)
+        windowsdict = testsearch.several_tokens_search_with_sentence_context("kittens")
         expectedwindowresult = {"text.txt": [search_engine.ContextWindow("There are only fluffy kittens! Only kittens",
                                     [indexer.Position_with_lines(22, 29, 0), indexer.Position_with_lines(36, 43, 0)],
                                      search_engine.WindowPosition(0, 43, 0, "text.txt"))]}
@@ -342,7 +347,7 @@ class ContextWindowTest(unittest.TestCase):
 
     def test_context_window_highlighted_search(self):
         testfile = open("text.txt", 'w')
-        testfile.write("There are only fluffy kittens! Only kittens")
+        testfile.write("There are only fluffy kittens bbb! Only kittens")
         testfile.close()
         self.testindexer.index_with_lines("text.txt")
         testfile2 = open("text2.txt", 'w')
@@ -351,18 +356,59 @@ class ContextWindowTest(unittest.TestCase):
         self.testindexer.index_with_lines("text2.txt")
         testsearch = search_engine.SearchEngine('database')
         
-        windowsdict = testsearch.highlighted_context_window_search("only", 1, 1)
-        expectedwindowresult = {"text.txt": ["There are <B>only</B> fluffy kittens!"],
+        windowsdict = testsearch.highlighted_context_window_search("only")
+        expectedwindowresult = {"text.txt": ["There are <B>only</B> fluffy kittens bbb!"],
                                 "text2.txt": ["<B>only</B> kittens and puppies..."]}
         self.assertEqual(windowsdict, expectedwindowresult)
             
-        windowsdict = testsearch.highlighted_context_window_search("only fluffy", 3, 3)
-        expectedwindowresult = {"text.txt": ["There are <B>only</B> <B>fluffy</B> kittens! Only kittens"]}
+        windowsdict = testsearch.highlighted_context_window_search("only fluffy")
+        expectedwindowresult = {"text.txt": ["There are <B>only</B> <B>fluffy</B> kittens bbb!"]}
         self.assertEqual(windowsdict, expectedwindowresult)
             
-        windowsdict = testsearch.highlighted_context_window_search("kittens", 1, 1)
-        expectedwindowresult = {"text.txt": ["There are only fluffy <B>kittens</B>! Only <B>kittens</B>"],
+        windowsdict = testsearch.highlighted_context_window_search("kittens")
+        expectedwindowresult = {"text.txt": ["There are only fluffy <B>kittens</B> bbb!",
+                                             "Only <B>kittens</B>"],
                                 "text2.txt": ["only <B>kittens</B> and puppies..."]}
+        self.assertEqual(windowsdict, expectedwindowresult)
+
+    #дописать тесты на поиск с limit и offset
+    def test_lim_off_context_window_search(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only fluffy kittens bbb! There are only kittens")
+        testfile.close()
+        self.testindexer.index_with_lines("text.txt")
+        testfile2 = open("text2.txt", 'w')
+        testfile2.write("only kittens and puppies...")
+        testfile2.close()
+        self.testindexer.index_with_lines("text2.txt")
+        testfile3 = open("text3.txt", 'w')
+        testfile3.write("Not only small kittens but big as well")
+        testfile3.close()
+        self.testindexer.index_with_lines("text3.txt")
+        testfile4 = open("text4.txt", 'w')
+        testfile4.write("kittens only little only \nooo only\n rrr only\n r r r only")
+        testfile4.close()
+        self.testindexer.index_with_lines("text4.txt")
+        testsearch = search_engine.SearchEngine('database')
+
+        windowsdict = testsearch.lim_off_context_window_search("only", 0, 1, [])
+        expectedwindowresult = {}
+        self.assertEqual(windowsdict, expectedwindowresult)
+
+        windowsdict = testsearch.lim_off_context_window_search("only", 5, 0, [[3,0],[3,0],[3,0],[3,0],[3,0]])
+        expectedwindowresult = {"text.txt": ["There are <B>only</B> fluffy kittens bbb!",
+                                             "There are <B>only</B> kittens"],
+                                "text2.txt": ["<B>only</B> kittens and puppies..."],
+                                "text3.txt": ["Not <B>only</B> small kittens but big as well"],
+                                "text4.txt": ["kittens <B>only</B> little <B>only</B> \n",
+                                              "ooo <B>only</B>\n",
+                                              " rrr <B>only</B>\n"]}
+        self.assertEqual(windowsdict, expectedwindowresult)
+
+        windowsdict = testsearch.lim_off_context_window_search("only", 3, 1, [[3,0],[3,1],[2,1]])
+        expectedwindowresult = {"text2.txt": ["<B>only</B> kittens and puppies..."],
+                                "text4.txt": ["ooo <B>only</B>\n",
+                                              " rrr <B>only</B>\n"]}
         self.assertEqual(windowsdict, expectedwindowresult)
 
     def tearDown(self):
