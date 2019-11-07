@@ -257,10 +257,9 @@ class SearchEngine(object):
                                 citationlist.append(cw)
                             y += 1
                         cwnumber += 1
+                    citationdict[doc] = citationlist
                 i += 1
             docnumber += 1
-            if len(citationlist) > 0:
-                citationdict[doc] = citationlist
         return citationdict
         
                 

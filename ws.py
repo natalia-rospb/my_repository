@@ -43,9 +43,13 @@ class RequestHandler(BaseHTTPRequestHandler):
         limit = form.getvalue("limit")
         if not limit:
             limit = 5
+        elif int(limit) < 0:
+            limit = 0
         else: limit = int(limit)
         offset = form.getvalue("offset")
-        if not offset:
+        if not int(offset):
+            offset = 0
+        elif int(offset) < 0:
             offset = 0
         else: offset = int(offset)
 
@@ -53,7 +57,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         for i in range(limit):
                 docslimoff[i] = [3,0]
         searchresult = self.server.search_engine.lim_off_context_window_search(tokenquery,
-                                                    limit, 0, docslimoff)
+                                                    limit, offset, docslimoff)
         self.send_response(200)
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
@@ -84,14 +88,17 @@ class RequestHandler(BaseHTTPRequestHandler):
                 doclimit = form.getvalue("doc%dlimit" % docnumber)
                 if not doclimit:
                     doclimit = 3
+                elif int(doclimit) < 0:
+                    doclimit = 0
                 else: doclimit = int(doclimit)
                 docoffset = form.getvalue("doc%doffset" % docnumber)
                 if not docoffset:
                     docoffset = 0
+                elif int(docoffset) < 0:
+                    docoffset = 0
                 else: docoffset = int(docoffset)
                 docslimoff[docnumber] = [doclimit, docoffset]
                 docnumber += 1
-            ##docslimoff = docslimoff[offset:]
             searchresultlimoff = self.server.search_engine.lim_off_context_window_search(tokenquery,
                                                 limit, offset, docslimoff)
             sortedkeyslimoff = list(searchresultlimoff.keys())

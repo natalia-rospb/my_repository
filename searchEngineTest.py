@@ -407,6 +407,7 @@ class ContextWindowTest(unittest.TestCase):
 
         windowsdict = testsearch.lim_off_context_window_search("only", 3, 1, [[3,0],[3,1],[2,1]])
         expectedwindowresult = {"text2.txt": ["<B>only</B> kittens and puppies..."],
+                                "text3.txt": [],
                                 "text4.txt": ["ooo <B>only</B>\n",
                                               " rrr <B>only</B>\n"]}
         self.assertEqual(windowsdict, expectedwindowresult)
