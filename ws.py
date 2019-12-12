@@ -108,6 +108,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             extdoclimoff[i] = [extdoclimoff[i][0], extdoclimoff[i][1]]
 
         start_time = time.time()
+        # search itself
         extsearchresult = self.server.search_engine.lim_off_context_window_search_acc(tokenquery,
                                                     extlimit, offset, extdoclimoff)
         print('time:', time.time() - start_time)
@@ -135,6 +136,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 sortedkeys.pop(limit)
             except IndexError:
                 pass
+            # disabling of "Back" and "Forward" buttons for docs 
             if offset == 0:
                 self.wfile.write(bytes("""<input type="submit" name="action" value = "Back" disabled>""", encoding="utf-8"))
             else:
@@ -163,6 +165,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     <br>
                     <input type="submit" name="action%d" value = "Beginning">
                     """ % (x, extdoclimoff[x][0] - 1, x, extdoclimoff[x][1], x), encoding="utf-8"))
+                # disabling of "Back" and "Forward" buttons for citations in every doc
                 if extdoclimoff[x][1] < 1:
                     self.wfile.write(bytes("""<input type="submit" name="action%d" value = "Back" disabled>""" % x, encoding="utf-8"))
                 else:

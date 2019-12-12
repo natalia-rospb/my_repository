@@ -267,6 +267,8 @@ class SearchEngine(object):
         string and applies to them method search_by_token.
         @param tokenquerystring: the sentence of tokens to be tokenized and
         processed by SearchEngine
+        @param limit: how many files to show on the page at once
+        @param offset: the number of a file from which to show citations
         @return resultedsearchdict: dict with files where ALL these tokens
         were found as keys and their positions in these files accordingly
         to the token's order in the query as values
@@ -307,6 +309,8 @@ class SearchEngine(object):
         to be added to the context window
         @param rightcontext: number of words from the right side of the token
         to be added to the context window
+        @param limit: how many files to show on the page at once
+        @param offset: the number of a file from which to show citations
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
         searchresult = self.several_tokens_search_acc(tokenquerystring, limit, offset)
@@ -328,6 +332,8 @@ class SearchEngine(object):
         to be added to the context window
         @param rightcontext: number of words from the right side of the token
         to be added to the context window
+        @param limit: how many files to show on the page at once
+        @param offset: the number of a file from which to show citations
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
         contextsearch = self.several_tokens_search_with_customizable_context_acc(tokenquerystring, 1, 1, limit, offset)
@@ -348,6 +354,8 @@ class SearchEngine(object):
         to be added to the context window
         @param rightcontext: number of words from the right side of the token
         to be added to the context window
+        @param limit: how many files to show on the page at once
+        @param offset: the number of a file from which to show citations
         @return mycitationdict: dict with docs as keys and citations as values
         """
         searchresult = self.several_tokens_search_with_sentence_context_acc(tokenquerystring, limit, offset)
@@ -366,7 +374,7 @@ class SearchEngine(object):
         @param tokenquerystring: the sentence of tokens to be tokenized and
         processed by SearchEngine
         @param limit: how many files to show on the page at once
-        @param offset: the number of an element from which to show citations
+        @param offset: the number of a filr from which to show citations
         @param docslimoff: list of pairs [doclimit, docoffset] for each doc in the output
         """
         searchresult = self.highlighted_context_window_search_acc(tokenquerystring, limit, offset)
