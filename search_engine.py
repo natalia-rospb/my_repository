@@ -175,13 +175,10 @@ class SearchEngine(object):
         @return contextwindowsresult: dict with docs as keys and CWs as values
         """
         searchresult = self.several_tokens_search(tokenquerystring)
-        t = Tokenizator()
-        tokenizerresult = list(t.generate_alpha_and_digits(tokenquerystring))
         contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
         contextwindowsresult2 = {}
         for doc in contextwindowsresult.keys():
             contextwindowsresult2[doc] = contextwindowsresult[doc]
-            i = len(contextwindowsresult[doc])-1
             if contextwindowsresult[doc] == []:
                 contextwindowsresult2.pop(doc)
         return contextwindowsresult2
@@ -243,6 +240,8 @@ class SearchEngine(object):
         sortedkeys.sort()
         i = 0 # number of docs on the page
         docnumber = 0
+        if offset < 0:
+            offset = 0
         for doc in sortedkeys:
             citationlist = []
             # realisation of the offset for documents
@@ -261,7 +260,136 @@ class SearchEngine(object):
                 i += 1
             docnumber += 1
         return citationdict
-        
+
+    def several_tokens_search_acc(self, tokenquerystring, limit, offset):
+        """
+        This method scans the database for each token from tokenized
+        string and applies to them method search_by_token.
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @return resultedsearchdict: dict with files where ALL these tokens
+        were found as keys and their positions in these files accordingly
+        to the token's order in the query as values
+        """
+        if offset < 0:
+            offset = 0
+        t = Tokenizator()
+        if not isinstance(tokenquerystring, str):
+            raise TypeError
+        if (tokenquerystring == ""):
+            return {}
+        tokenizerresult = list(t.generate_alpha_and_digits(tokenquerystring))
+        searchresultarray = []
+        for token in tokenizerresult:
+            searchresultarray.append(self.search_by_token(token.word))
+        if not searchresultarray:
+            return {}
+        # we need at least one element to create set
+        filesset = set(searchresultarray[0])
+        for queryresult in searchresultarray:
+            # filesset contains only filenames 
+            filesset.intersection_update(queryresult)
+        filesset = sorted(filesset)[offset: limit+offset]
+        resultedsearchdict = {}
+        for file in filesset:
+            for token in tokenizerresult:
+                resultedsearchdict.setdefault(file,[]).extend(
+                    self.database[token.word][file])
+            resultedsearchdict[file].sort()
+        return resultedsearchdict
+
+    def several_tokens_search_with_customizable_context_acc(self, tokenquerystring, leftcontext, rightcontext, limit, offset):
+        """
+        This method gives CWs of customizable size
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return contextwindowsresult: dict with docs as keys and CWs as values
+        """
+        searchresult = self.several_tokens_search_acc(tokenquerystring, limit, offset)
+        contextwindowsresult = self.get_context_windows(searchresult, leftcontext, rightcontext)
+        contextwindowsresult2 = {}
+        for doc in contextwindowsresult.keys():
+            contextwindowsresult2[doc] = contextwindowsresult[doc]
+            if contextwindowsresult[doc] == []:
+                contextwindowsresult2.pop(doc)
+        return contextwindowsresult2
+
+    def several_tokens_search_with_sentence_context_acc(self, tokenquerystring, limit, offset):
+        """
+        This method enlarges CWs until sentence boundaries on both sides or, if there are no boundary, until
+        the position of the start or the end of the line.
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return contextwindowsresult: dict with docs as keys and CWs as values
+        """
+        contextsearch = self.several_tokens_search_with_customizable_context_acc(tokenquerystring, 1, 1, limit, offset)
+        for doc in contextsearch.keys():
+            for item in contextsearch[doc]:
+                item.get_sentence_context_window()
+            contextsearch[doc] = SearchEngine.check_and_unite_context_windows(contextsearch[doc])
+        return contextsearch
+
+    def highlighted_context_window_search_acc(self, tokenquerystring, limit, offset):
+        """
+        This method search tokenquerystring in database and returns search result
+        as a dict with docs as keys and citations (sentences) 
+        where query style is bold (marked with <B> tags)
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param leftcontext: number of words from the left side of the token
+        to be added to the context window
+        @param rightcontext: number of words from the right side of the token
+        to be added to the context window
+        @return mycitationdict: dict with docs as keys and citations as values
+        """
+        searchresult = self.several_tokens_search_with_sentence_context_acc(tokenquerystring, limit, offset)
+        citationdict = {}
+        for doc in searchresult.keys():
+            citationlist = []
+            for cw in searchresult[doc]:
+                citationlist.append(cw.get_context_window_bold())
+            citationdict[doc] = citationlist
+        return citationdict
+
+    def lim_off_context_window_search_acc(self, tokenquerystring, limit, offset, docslimoff):
+        """
+        This method creates an output from searchresult accordingly to the limit and
+        offset requirements given on the browser page
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param limit: how many files to show on the page at once
+        @param offset: the number of an element from which to show citations
+        @param docslimoff: list of pairs [doclimit, docoffset] for each doc in the output
+        """
+        searchresult = self.highlighted_context_window_search_acc(tokenquerystring, limit, offset)
+        citationdict = {}
+        sortedkeys = list(searchresult.keys())
+        sortedkeys.sort()
+        i = 0 # number of docs on the page
+        docnumber = 0
+        for doc in sortedkeys:
+            citationlist = []
+            cwnumber = 0
+            y = 0 # number of citations 
+            for cw in searchresult[doc]:
+                if cwnumber >= docslimoff[docnumber][1]: # checking docoffset
+                    # realisation of the limit for citations 
+                    if y < docslimoff[docnumber][0]: # checking doclimit
+                        citationlist.append(cw)
+                    y += 1
+                cwnumber += 1
+            citationdict[doc] = citationlist
+            i += 1
+            docnumber += 1
+        return citationdict
                 
 class WindowPosition(object):
     
@@ -434,7 +562,7 @@ class ContextWindow(object):
         return newstring
     
 def main():
-##    indexing = indexer.Indexer("database")
+    indexing = indexer.Indexer("database")
 ##    file = open('text.txt', 'w')
 ##    file.write('На небе. Много. Фиолетовых облачков')
 ##    file.close()
@@ -447,15 +575,27 @@ def main():
 ##    file3.close()
 ##    indexing.index_with_lines('text3.txt')
 ##    indexing.closeDatabase()
-    search = SearchEngine("vim")
+    #search = SearchEngine("vim")
 ##    tokenquery = "небе"
 ##    tokenquery2 = "много облачков"
 ##    searchresult = search.highlighted_context_window_search(tokenquery2)
 
-    contextsearch1 = search.lim_off_context_window_search('князь Андрей', 4, 2, [[5,2],[1,6],[8,2],[2,0]])
-    print(contextsearch1)
+    #contextsearch1 = search.lim_off_context_window_search_acc('князь Андрей', 3, 0, [[3,0],[3,0],[3,0]])
+   # print(contextsearch1)
 ##    search.closeDatabase()
-    
+
+    testfile = open("text.txt", 'w')
+    testfile.write("There are only fluffy kittens!")
+    testfile.close()
+    testfile2 = open("text2.txt", 'w')
+    testfile2.write("only kittens and puppies...")
+    testfile2.close()
+    indexing.index_with_lines("text2.txt")
+    indexing.index_with_lines("text.txt")
+    testsearch = SearchEngine('database')
+    # context '3,3'
+    windowsdict = testsearch.several_tokens_search_with_customizable_context_acc("only kittens", 3, 3, 3, -1)
+    print(windowsdict)
 
 if __name__=='__main__':
     with Profiler() as p:

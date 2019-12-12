@@ -4,6 +4,7 @@ Methods for working with the web server.
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import cgi
 from search_engine import SearchEngine, ContextWindow
+import time
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -46,12 +47,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         limit = form.getvalue("limit")
         if not limit:
             limit = 5
-        try:
+        elif int(limit) < 0:
+            limit = 0
+        else:
             limit = int(limit)
-            if limit < 0:
-                limit = 0
-        except ValueError:
-            self.wfile.write(bytes("Wrong query", encoding="UTF-8"))
+
         offset = form.getvalue("offset")
         if not offset:
             offset = 0
@@ -106,9 +106,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             elif docactiontype == "Back":
                 extdoclimoff[i][1] = extdoclimoff[i][1] - extdoclimoff[i][0] + 1
             extdoclimoff[i] = [extdoclimoff[i][0], extdoclimoff[i][1]]
-        
-        extsearchresult = self.server.search_engine.lim_off_context_window_search(tokenquery,
+
+        start_time = time.time()
+        extsearchresult = self.server.search_engine.lim_off_context_window_search_acc(tokenquery,
                                                     extlimit, offset, extdoclimoff)
+        print('time:', time.time() - start_time)
         self.send_response(200)
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
@@ -137,7 +139,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(bytes("""<input type="submit" name="action" value = "Back" disabled>""", encoding="utf-8"))
             else:
                 self.wfile.write(bytes("""<input type="submit" name="action" value = "Back"> """, encoding="utf-8"))
-            if (len(extsearchresult.keys()) < extlimit):
+            if (len(extsearchresult.keys()) < extlimit) or (limit == 0):
                 self.wfile.write(bytes("""<input type="submit" name="action" value = "Forward" disabled> 
                             <ol>
                             <hr />""", encoding="utf-8"))
