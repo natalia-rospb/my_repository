@@ -3,6 +3,7 @@ import unittest
 import os
 import shelve
 import search_engine
+from collections.abc import Generator
 
 
 class SearchEngineSimpleTest(unittest.TestCase):
@@ -218,6 +219,36 @@ class SearchEngineComplexTest(unittest.TestCase):
                          indexer.Position_with_lines(0, 2, 1), indexer.Position_with_lines(2, 4, 1)]
         list3result = list(testsearch.position_generator(lists3))
         self.assertEqual(list3result, expectedlist3)
+
+    def test_several_tokens_search_is_generator(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("k")
+        testfile.close()
+        self.testindexer.index_with_lines("text.txt")
+        testsearch = search_engine.SearchEngine('database')
+        testresult = testsearch.several_tokens_search_gen("k", 1, 0)
+        self.assertIsInstance(testresult["text.txt"], Generator)
+
+    def test_several_tokens_search_gen(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("There are only fluffy kittens kittens")
+        testfile.close()
+        self.testindexer.index_with_lines("text.txt")
+        testfile2 = open("text2.txt", 'w')
+        testfile2.write("only kittens and puppies...")
+        testfile2.close()
+        self.testindexer.index_with_lines("text2.txt")
+        testsearch = search_engine.SearchEngine('database')
+        searchresult1 = testsearch.several_tokens_search_gen("", 1, 0)
+        self.assertEqual(searchresult1, {})
+        searchresult2 = testsearch.several_tokens_search_gen("?", 2, 0)
+        self.assertEqual(searchresult2, {})
+        searchresult3 = testsearch.several_tokens_search_gen("kittens", 2, 0)
+        expectedsearchresult3 = {"text.txt": [indexer.Position_with_lines(22, 29, 0),
+                                              indexer.Position_with_lines(30, 37, 0)],
+                                "text2.txt": [indexer.Position_with_lines(5, 12, 0)]}
+        for file in searchresult3:
+            self.assertEqual(list(searchresult3[file]), expectedsearchresult3[file])
 
     def tearDown(self):
         self.testindexer.closeDatabase()
