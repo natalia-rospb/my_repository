@@ -241,14 +241,28 @@ class SearchEngineComplexTest(unittest.TestCase):
         testsearch = search_engine.SearchEngine('database')
         searchresult1 = testsearch.several_tokens_search_gen("", 1, 0)
         self.assertEqual(searchresult1, {})
+        
         searchresult2 = testsearch.several_tokens_search_gen("?", 2, 0)
         self.assertEqual(searchresult2, {})
+        
         searchresult3 = testsearch.several_tokens_search_gen("kittens", 2, 0)
         expectedsearchresult3 = {"text.txt": [indexer.Position_with_lines(22, 29, 0),
                                               indexer.Position_with_lines(30, 37, 0)],
                                 "text2.txt": [indexer.Position_with_lines(5, 12, 0)]}
         for file in searchresult3:
             self.assertEqual(list(searchresult3[file]), expectedsearchresult3[file])
+            
+        searchresult4 = testsearch.several_tokens_search_gen("kittens", 1, 0)
+        expectedsearchresult4 = {"text.txt": [indexer.Position_with_lines(22, 29, 0),
+                                      indexer.Position_with_lines(30, 37, 0)]}
+        for file in searchresult4:
+            self.assertEqual(list(searchresult4[file]), expectedsearchresult4[file])
+            
+        searchresult5 = testsearch.several_tokens_search_gen("kittens", 1, 3)
+        self.assertEqual(searchresult5, {})
+
+        searchresult6 = testsearch.several_tokens_search_gen("kittens", -5, 0)
+        self.assertEqual(searchresult6, {})
 
     def tearDown(self):
         self.testindexer.closeDatabase()
