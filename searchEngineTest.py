@@ -199,6 +199,26 @@ class SearchEngineComplexTest(unittest.TestCase):
                                               indexer.Position_with_lines(13, 16, 0)]}
         self.assertEqual(searchresulteddictionary, expectedsearchresult)
                     
+    def test_position_generator(self):
+        testfile = open("text.txt", 'w')
+        testfile.write("")
+        testfile.close()
+        testsearch = search_engine.SearchEngine('database')
+        lists1 = [[1, 2, 3, 4, 6], [9, 5, 10, 31]]
+        list1result = list(testsearch.position_generator(lists1))
+        expectedlist1 = [1, 2, 3, 4, 5, 6, 9, 10, 31]
+        self.assertEqual(list1result, expectedlist1)
+        lists2 = [[-5, 9, 0, 20], [1, 15]]
+        list2result = list(testsearch.position_generator(lists2))
+        expectedlist2 = [-5, 0, 1, 9, 15, 20]
+        self.assertEqual(list2result, expectedlist2)
+        lists3 = [[indexer.Position_with_lines(6, 9, 0), indexer.Position_with_lines(2, 4, 1)],
+                  [indexer.Position_with_lines(0, 2, 1),indexer.Position_with_lines(4, 10, 0)]]
+        expectedlist3 = [indexer.Position_with_lines(4, 10, 0), indexer.Position_with_lines(6, 9, 0),
+                         indexer.Position_with_lines(0, 2, 1), indexer.Position_with_lines(2, 4, 1)]
+        list3result = list(testsearch.position_generator(lists3))
+        self.assertEqual(list3result, expectedlist3)
+
     def tearDown(self):
         self.testindexer.closeDatabase()
         for filename in os.listdir(os.getcwd()):
@@ -508,8 +528,7 @@ class ContextWindowTest(unittest.TestCase):
         windowsdict = testsearch.highlighted_context_window_search_acc("kittens", 1, 1)
         expectedwindowresult = {"text2.txt": ["only <B>kittens</B> and puppies..."]}
         self.assertEqual(windowsdict, expectedwindowresult)    
-
-
+        
     def tearDown(self):
         self.testindexer.closeDatabase()
         for filename in os.listdir(os.getcwd()):

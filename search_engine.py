@@ -17,6 +17,7 @@ class Profiler(object):
     def __exit__(self, type, value, traceback):
         print("Elapsed time: {:.3f} sec".format(time.time() - self._startTime))
 
+
 class SearchEngine(object):
     """
     Class which contains methods for serching positions of tokens through
@@ -398,7 +399,74 @@ class SearchEngine(object):
             i += 1
             docnumber += 1
         return citationdict
-                
+
+    def position_generator(self, lists):
+        """
+        This method generates 1 ordered list of positions from several lists
+        @param lists: lists of positions (each list = positions in 1 file)
+        @return: an ordered list of positions in all files 
+        """
+        for mylist in lists:
+            mylist.sort()
+        itrlists = [iter(mylist) for mylist in lists]
+        mins = [next(itrlist) for itrlist in itrlists]
+        while mins:
+            newitem = min(mins)
+            yield newitem
+            itemposition = mins.index(newitem)
+            try:
+                mins[itemposition] = next(itrlists[itemposition])
+            except StopIteration:
+                itrlists.pop(itemposition)
+                mins.pop(itemposition)
+
+    def several_tokens_search_gen(self, tokenquerystring, limit, offset):
+        """
+        This method scans the database for each token from tokenized
+        string and applies to them method search_by_token.
+        @param tokenquerystring: the sentence of tokens to be tokenized and
+        processed by SearchEngine
+        @param limit: how many files to show on the page at once
+        @param offset: the number of a file from which to show citations
+        @return resultedsearchdictgen: dict with files where ALL these tokens
+        were found as keys and their position generators as values
+        """
+        lists = {} # dict: key = filename; value = list of positions
+        if offset < 0:
+            offset = 0
+        t = Tokenizator()
+        if not isinstance(tokenquerystring, str):
+            raise TypeError
+        if (tokenquerystring == ""):
+            return {}
+        tokenizerresult = list(t.generate_alpha_and_digits(tokenquerystring))
+        searchresultarray = []
+        for token in tokenizerresult:
+            onetokenpos = self.search_by_token(token.word)
+            searchresultarray.append(set(onetokenpos))
+            for file in onetokenpos:
+                lists.setdefault(file, []).append(onetokenpos[file])
+        if not searchresultarray:
+            return {}
+        # we need at least one element to create set
+        filesset = set(searchresultarray[0])
+        for queryresult in searchresultarray:
+            # filesset contains only filenames 
+            filesset.intersection_update(queryresult)
+        filesset = sorted(filesset)[offset: limit+offset]
+        resultedsearchdictgen = {} #dict: key = filename; value = position_generator for this file
+        if len(lists) != 0:
+            for file in filesset:
+                resultedsearchdictgen[file] = self.position_generator(lists[file])
+        else: return {}
+        return resultedsearchdictgen
+
+##    def cw_generator(self, file, position_generator, leftcontext, rightcontext):
+##        for pos in position_generator:
+##            newcw = ContextWindow.get_context_window_one_position_one_file(pos, file,
+##                            pos.line, leftcontext, rightcontext)
+        
+    
 class WindowPosition(object):
     
     def __init__(self, start, end, line, doc):
